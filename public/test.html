@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test SQL Functions - Supabase</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+
+    h2 {
+      color: #555;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 10px;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: #4caf50;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #45a049;
+    }
+
+    .btn-danger {
+      background: #f44336;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #da190b;
+    }
+
+    .status {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+
+    .status.info {
+      background: #e3f2fd;
+      color: #1976d2;
+      border-left: 4px solid #1976d2;
+    }
+
+    .status.success {
+      background: #e8f5e9;
+      color: #388e3c;
+      border-left: 4px solid #4caf50;
+    }
+
+    .status.error {
+      background: #ffebee;
+      color: #c62828;
+      border-left: 4px solid #f44336;
+    }
+
+    .result-box {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .user-info {
+      background: #f0f4ff;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .user-info p {
+      margin: 5px 0;
+      font-size: 14px;
+      color: #333;
+    }
+
+    .user-info strong {
+      color: #667eea;
+    }
+
+    .test-buttons {
+      display: grid;
+      gap: 10px;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <!-- Sección de Login -->
+    <div class="card" id="loginSection">
+      <h1>🔐 Test de Funciones SQL</h1>
+      <div class="status info">
+        Primero debes autenticarte para poder ejecutar las funciones SQL
+      </div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required 
+                 placeholder="tu@email.com">
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" name="password" required 
+                 placeholder="Tu contraseña">
+        </div>
+        
+        <button type="submit" class="btn-primary">Iniciar Sesión</button>
+      </form>
+
+      <div id="loginError" class="status error hidden"></div>
+    </div>
+
+    <!-- Sección de Tests (oculta hasta login) -->
+    <div class="card hidden" id="testSection">
+      <h1>✅ Sesión Activa</h1>
+      
+      <div class="user-info">
+        <p><strong>Email:</strong> <span id="userEmail">-</span></p>
+        <p><strong>User ID:</strong> <span id="userId">-</span></p>
+      </div>
+
+      <h2>Ejecutar Funciones SQL</h2>
+      
+      <div class="test-buttons">
+        <button class="btn-secondary" onclick="testGetUserGrupoId()">
+          🔍 SELECT get_user_grupo_id()
+        </button>
+        
+        <button class="btn-secondary" onclick="testIsUserAdmin()">
+          👤 SELECT is_user_admin()
+        </button>
+        
+        <button class="btn-secondary" onclick="testBothFunctions()">
+          🚀 Ejecutar Ambas Funciones
+        </button>
+      </div>
+
+      <div id="testResults" class="hidden">
+        <h2 style="margin-top: 20px;">Resultados:</h2>
+        <div class="result-box" id="resultsOutput"></div>
+      </div>
+
+      <button class="btn-danger" onclick="logout()" style="margin-top: 20px;">
+        Cerrar Sesión
+      </button>
+    </div>
+
+    <!-- Sección de Estado de Conexión -->
+    <div class="card">
+      <h2>Estado de Conexión</h2>
+      <div id="connectionStatus" class="status info">
+        Inicializando...
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+  
+  <script>
+    // ============================================
+    // CONFIGURACIÓN - REEMPLAZA CON TUS CREDENCIALES
+    // ============================================
+    const SUPABASE_URL = 'https://vkthaoiurwuzuztpvuyl.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrdGhhb2l1cnd1enV6dHB2dXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwODM3MDksImV4cCI6MjA4MjY1OTcwOX0.GfQWCwW4I_PeHijgafPhBmBAlS2lqT8aw9UaIY8TdXY';
+
+    // Variables globales
+    let supabase;
+    let currentUser = null;
+
+    // ============================================
+    // INICIALIZACIÓN
+    // ============================================
+    function initSupabase() {
+      const statusDiv = document.getElementById('connectionStatus');
+      
+      try {
+        if (typeof window.supabase === 'undefined') {
+          throw new Error('Supabase CDN no cargó');
+        }
+
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        statusDiv.className = 'status success';
+        statusDiv.textContent = '✅ Conexión a Supabase establecida';
+        
+        // Verificar si ya hay una sesión activa
+        checkExistingSession();
+        
+      } catch (error) {
+        statusDiv.className = 'status error';
+        statusDiv.textContent = '❌ Error: ' + error.message;
+        console.error('Error inicializando Supabase:', error);
+      }
+    }
+
+    // Verificar sesión existente
+    async function checkExistingSession() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          currentUser = session.user;
+          showTestSection();
+        }
+      } catch (error) {
+        console.error('Error verificando sesión:', error);
+      }
+    }
+
+    // ============================================
+    // AUTENTICACIÓN
+    // ============================================
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('loginError');
+      
+      errorDiv.classList.add('hidden');
+      
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password
+        });
+        
+        if (error) throw error;
+        
+        currentUser = data.user;
+        showTestSection();
+        
+      } catch (error) {
+        errorDiv.textContent = '❌ Error: ' + error.message;
+        errorDiv.classList.remove('hidden');
+        console.error('Error en login:', error);
+      }
+    });
+
+    function showTestSection() {
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('testSection').classList.remove('hidden');
+      
+      document.getElementById('userEmail').textContent = currentUser.email;
+      document.getElementById('userId').textContent = currentUser.id;
+    }
+
+    async function logout() {
+      try {
+        await supabase.auth.signOut();
+        currentUser = null;
+        
+        document.getElementById('loginSection').classList.remove('hidden');
+        document.getElementById('testSection').classList.add('hidden');
+        document.getElementById('testResults').classList.add('hidden');
+        
+        document.getElementById('loginForm').reset();
+        
+      } catch (error) {
+        console.error('Error al cerrar sesión:', error);
+        alert('Error al cerrar sesión: ' + error.message);
+      }
+    }
+
+    // ============================================
+    // FUNCIONES DE TEST SQL
+    // ============================================
+    
+    async function testGetUserGrupoId() {
+      const output = document.getElementById('resultsOutput');
+      const resultsDiv = document.getElementById('testResults');
+      
+      output.textContent = '⏳ Ejecutando get_user_grupo_id()...\n\n';
+      resultsDiv.classList.remove('hidden');
+      
+      try {
+        // Ejecutar función SQL usando RPC
+        const { data, error } = await supabase.rpc('get_user_grupo_id');
+        
+        if (error) throw error;
+        
+        output.textContent += '✅ SUCCESS\n\n';
+        output.textContent += 'FUNCIÓN: get_user_grupo_id()\n';
+        output.textContent += 'RESULTADO: ' + JSON.stringify(data, null, 2) + '\n\n';
+        output.textContent += 'TIPO: ' + typeof data + '\n';
+        output.textContent += 'GRUPO_ID: ' + data;
+        
+      } catch (error) {
+        output.textContent += '❌ ERROR\n\n';
+        output.textContent += 'MENSAJE: ' + error.message + '\n\n';
+        output.textContent += 'DETALLES: ' + JSON.stringify(error, null, 2);
+        console.error('Error ejecutando get_user_grupo_id:', error);
+      }
+    }
+
+    async function testIsUserAdmin() {
+      const output = document.getElementById('resultsOutput');
+      const resultsDiv = document.getElementById('testResults');
+      
+      output.textContent = '⏳ Ejecutando is_user_admin()...\n\n';
+      resultsDiv.classList.remove('hidden');
+      
+      try {
+        // Ejecutar función SQL usando RPC
+        const { data, error } = await supabase.rpc('is_user_admin');
+        
+        if (error) throw error;
+        
+        output.textContent += '✅ SUCCESS\n\n';
+        output.textContent += 'FUNCIÓN: is_user_admin()\n';
+        output.textContent += 'RESULTADO: ' + JSON.stringify(data, null, 2) + '\n\n';
+        output.textContent += 'TIPO: ' + typeof data + '\n';
+        output.textContent += 'ES ADMIN: ' + (data ? 'SÍ' : 'NO');
+        
+      } catch (error) {
+        output.textContent += '❌ ERROR\n\n';
+        output.textContent += 'MENSAJE: ' + error.message + '\n\n';
+        output.textContent += 'DETALLES: ' + JSON.stringify(error, null, 2);
+        console.error('Error ejecutando is_user_admin:', error);
+      }
+    }
+
+    async function testBothFunctions() {
+      const output = document.getElementById('resultsOutput');
+      const resultsDiv = document.getElementById('testResults');
+      
+      output.textContent = '⏳ Ejecutando ambas funciones...\n\n';
+      resultsDiv.classList.remove('hidden');
+      
+      try {
+        // Ejecutar ambas funciones en paralelo
+        const [grupoResult, adminResult] = await Promise.all([
+          supabase.rpc('get_user_grupo_id'),
+          supabase.rpc('is_user_admin')
+        ]);
+        
+        output.textContent = '✅ AMBAS FUNCIONES EJECUTADAS\n\n';
+        output.textContent += '═══════════════════════════════════════\n\n';
+        
+        // Resultado 1: get_user_grupo_id
+        output.textContent += '📋 FUNCIÓN: get_user_grupo_id()\n';
+        if (grupoResult.error) {
+          output.textContent += '❌ ERROR: ' + grupoResult.error.message + '\n';
+        } else {
+          output.textContent += '✅ RESULTADO: ' + grupoResult.data + '\n';
+          output.textContent += '   Tu grupo_id es: ' + grupoResult.data + '\n';
+        }
+        
+        output.textContent += '\n═══════════════════════════════════════\n\n';
+        
+        // Resultado 2: is_user_admin
+        output.textContent += '👤 FUNCIÓN: is_user_admin()\n';
+        if (adminResult.error) {
+          output.textContent += '❌ ERROR: ' + adminResult.error.message + '\n';
+        } else {
+          output.textContent += '✅ RESULTADO: ' + adminResult.data + '\n';
+          output.textContent += '   Eres admin: ' + (adminResult.data ? 'SÍ' : 'NO') + '\n';
+        }
+        
+        output.textContent += '\n═══════════════════════════════════════\n\n';
+        output.textContent += 'DATOS COMPLETOS:\n';
+        output.textContent += JSON.stringify({
+          grupo_id: grupoResult.data,
+          is_admin: adminResult.data,
+          user_email: currentUser.email,
+          user_id: currentUser.id
+        }, null, 2);
+        
+      } catch (error) {
+        output.textContent += '❌ ERROR GENERAL\n\n';
+        output.textContent += 'MENSAJE: ' + error.message + '\n\n';
+        output.textContent += 'DETALLES: ' + JSON.stringify(error, null, 2);
+        console.error('Error ejecutando funciones:', error);
+      }
+    }
+
+    // ============================================
+    // INICIALIZAR AL CARGAR
+    // ============================================
+    window.addEventListener('DOMContentLoaded', initSupabase);
+  </script>
+</body>
+</html>
