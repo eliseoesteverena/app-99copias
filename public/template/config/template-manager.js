@@ -127,7 +127,7 @@ export class TemplateManager {
   
   initUtilities() {
   // Scroll observer
-  import('./template/utils/scroll-observer.js').then(module => {
+  import('../utils/scroll-observer.js').then(module => {
     new module.ScrollObserver(this.state, this.config.topBar.scrollBehavior.threshold);
   }).catch(err => {
     console.error('❌ Error cargando scroll-observer:', err);
@@ -135,7 +135,7 @@ export class TemplateManager {
   
   // Touch gestures (solo móvil)
   if ('ontouchstart' in window) {
-    import('./template/utils/touch-gestures.js').then(module => {
+    import('../utils/touch-gestures.js').then(module => {
       new module.TouchGestureHandler(document.body, {
         onSwipeRight: () => {
           if (window.innerWidth < this.config.settings.breakpoints.tablet) {
@@ -158,7 +158,7 @@ export class TemplateManager {
   }
   
   // Keyboard navigation
-  import('./template/utils/keyboard-nav.js').then(module => {
+  import('../utils/keyboard-nav.js').then(module => {
     new module.KeyboardNavigationHandler(this.state);
   }).catch(err => {
     console.error('❌ Error cargando keyboard-nav:', err);
