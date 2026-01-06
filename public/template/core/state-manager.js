@@ -1,4 +1,4 @@
-export class StateManager import { el } from '../../mount.js';
+import { el } from '../../mount.js';
 
 export function renderSidebarItem(item, state, isCollapsed) {
   const isActive = item.active || window.location.pathname === item.href;
