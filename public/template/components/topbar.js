@@ -1,5 +1,4 @@
 import { el } from '../../mount.js';
-import { renderSearchBar } from './search-bar.js';
 import { renderUserDropdown } from './user-dropdown.js';
 
 export function renderTopBar(config, state, auth) {
@@ -24,11 +23,9 @@ export function renderTopBar(config, state, auth) {
     
     // Right section
     el('div', { class: 'topbar-right' }, [
-      // Search bar
-      config.search.enabled ? renderSearchBar(config.search, state) : null,
-      
       // Notifications
       config.notifications.enabled ? el('button', {
+        class: 'topbar-notification-button',
         'aria-label': 'Notificaciones',
         onclick: config.notifications.onClick || (() => {
           alert('Funcionalidad de notificaciones próximamente');

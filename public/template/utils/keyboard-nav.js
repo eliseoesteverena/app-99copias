@@ -8,24 +8,25 @@ export class KeyboardNavigationHandler {
     document.addEventListener('keydown', (e) => {
       // Esc: cerrar sidebar en móvil
       if (e.key === 'Escape') {
-        if (window.innerWidth < 768 && this.state.state.sidebar.isOpen) {
+        if (window.innerWidth < 750 && this.state.state.sidebar.isOpen) {
           this.state.toggleSidebar();
         }
       }
       
-      // Ctrl/Cmd + K: foco en búsqueda
+      // Ctrl/Cmd + K: abrir búsqueda
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
-        const searchInput = document.querySelector('.topbar-search input');
-        if (searchInput) {
-          searchInput.focus();
+        if (window.openSearchModal) {
+          window.openSearchModal();
         }
       }
       
-      // Ctrl/Cmd + B: toggle sidebar
+      // Ctrl/Cmd + B: toggle sidebar (solo desktop)
       if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
         e.preventDefault();
-        this.state.toggleSidebar();
+        if (window.innerWidth >= 750) {
+          this.state.toggleSidebar();
+        }
       }
     });
   }

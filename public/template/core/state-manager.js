@@ -6,7 +6,7 @@ export class StateManager {
       sidebar: {
         isOpen: this.loadSidebarState(),
         activeItem: null,
-        expandedItems: this.loadExpandedItems()
+        expandedItems: [] // Ya no se usa, pero lo dejamos por compatibilidad
       },
       topBar: {
         isCompact: false,
@@ -16,18 +16,32 @@ export class StateManager {
     };
     
     this.listeners = new Map();
+    this.init();
+  }
+  
+  init() {
+    // Escuchar cambios de tamaño de ventana
+    window.addEventListener('resize', () => this.handleResize());
   }
   
   loadSidebarState() {
+    // En móvil (< 750px), siempre cerrado por defecto
+    if (window.innerWidth < 750) {
+      return false;
+    }
+    
+    // En desktop, cargar preferencia guardada
     if (!this.config.settings.sidebarPersistence) {
       return this.config.settings.sidebarDefaultState === 'open';
     }
+    
     const stored = localStorage.getItem('template:sidebar:state');
     return stored !== null ? JSON.parse(stored) : true;
   }
   
   saveSidebarState() {
-    if (this.config.settings.sidebarPersistence) {
+    // Solo guardar en desktop
+    if (window.innerWidth >= 750 && this.config.settings.sidebarPersistence) {
       localStorage.setItem(
         'template:sidebar:state',
         JSON.stringify(this.state.sidebar.isOpen)
@@ -36,6 +50,7 @@ export class StateManager {
   }
   
   loadExpandedItems() {
+    // Ya no se usa, pero lo dejamos por si acaso
     try {
       const stored = localStorage.getItem('template:sidebar:expanded');
       return stored ? JSON.parse(stored) : [];
@@ -45,16 +60,56 @@ export class StateManager {
   }
   
   saveExpandedItems() {
-    localStorage.setItem(
-      'template:sidebar:expanded',
-      JSON.stringify(this.state.sidebar.expandedItems)
-    );
+    // Ya no se usa
   }
   
   toggleSidebar() {
+    const wasMobile = window.innerWidth < 750;
+    
     this.state.sidebar.isOpen = !this.state.sidebar.isOpen;
     this.saveSidebarState();
     this.emit('sidebar:toggle', this.state.sidebar.isOpen);
+    
+    // En móvil, mostrar/ocultar overlay
+    if (wasMobile) {
+      const overlay = document.querySelector('.sidebar-overlay');
+      if (overlay) {
+        if (this.state.sidebar.isOpen) {
+          overlay.classList.add('sidebar-overlay--visible');
+        } else {
+          overlay.classList.remove('sidebar-overlay--visible');
+        }
+      }
+    }
+  }
+  
+  handleResize() {
+    const isMobile = window.innerWidth < 750;
+    const sidebar = document.getElementById('sidebar');
+    
+    if (!sidebar) return;
+    
+    if (isMobile) {
+      // En móvil: añadir clase overlay
+      sidebar.classList.add('sidebar--overlay');
+      sidebar.classList.remove('sidebar--collapsed');
+      
+      // Si estaba abierto en desktop y cambió a móvil, cerrar
+      if (this.state.sidebar.isOpen) {
+        this.state.sidebar.isOpen = false;
+        this.emit('sidebar:toggle', false);
+      }
+    } else {
+      // En desktop: quitar clase overlay
+      sidebar.classList.remove('sidebar--overlay');
+      
+      // Restaurar estado guardado
+      const savedState = this.loadSidebarState();
+      if (savedState !== this.state.sidebar.isOpen) {
+        this.state.sidebar.isOpen = savedState;
+        this.emit('sidebar:toggle', savedState);
+      }
+    }
   }
   
   // Event system

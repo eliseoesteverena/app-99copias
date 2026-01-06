@@ -1,6 +1,7 @@
 import { StateManager } from './state-manager.js';
 import { renderTopBar } from '../components/topbar.js';
 import { renderSidebar } from '../components/sidebar.js';
+import { createSearchModal } from '../components/search-modal.js';
 import { el } from '../../mount.js';
 
 export class TemplateManager {
@@ -26,6 +27,9 @@ export class TemplateManager {
     
     // Inicializar utilidades
     this.initUtilities();
+    
+    // Pre-crear modal de búsqueda (no se muestra hasta que se llame)
+    createSearchModal();
   }
   
   updateConfigWithUserData() {
@@ -53,12 +57,11 @@ export class TemplateManager {
       id: 'main-content',
       class: 'main-content',
       style: {
-        marginTop: this.config.topBar.height,
-        marginLeft: this.state.state.sidebar.isOpen ?
+        marginLeft: window.innerWidth >= 750 && this.state.state.sidebar.isOpen ?
           this.config.settings.sidebarWidth.open :
-          this.config.settings.sidebarWidth.collapsed,
-        transition: 'margin-left 0.3s ease',
-        minHeight: 'calc(100vh - ' + this.config.topBar.height + ')'
+          window.innerWidth >= 750 ?
+          this.config.settings.sidebarWidth.collapsed :
+          '0'
       }
     });
     
@@ -67,8 +70,9 @@ export class TemplateManager {
     // Overlay para móvil
     this.components.overlay = el('div', {
       class: 'sidebar-overlay',
-      onclick: () => {
-        if (window.innerWidth < this.config.settings.breakpoints.tablet) {
+      onclick: (e) => {
+        e.stopPropagation();
+        if (window.innerWidth < 750) {
           this.state.toggleSidebar();
         }
       }
@@ -80,10 +84,11 @@ export class TemplateManager {
     // Sidebar toggle
     this.state.on('sidebar:toggle', (isOpen) => {
       this.updateMainContentMargin(isOpen);
-      this.components.sidebar.classList.toggle('sidebar--collapsed', !isOpen);
       
-      // Mostrar/ocultar overlay en móvil
-      if (window.innerWidth < this.config.settings.breakpoints.tablet) {
+      if (window.innerWidth >= 750) {
+        this.components.sidebar.classList.toggle('sidebar--collapsed', !isOpen);
+      } else {
+        // En móvil, mostrar/ocultar overlay
         this.components.overlay.classList.toggle('sidebar-overlay--visible', isOpen);
       }
     });
@@ -97,80 +102,57 @@ export class TemplateManager {
     this.state.on('user:logout', async () => {
       await this.auth.logout();
     });
-    
-    // Responsive
-    this.setupResponsiveListeners();
-  }
-  
-  setupResponsiveListeners() {
-    const mediaQuery = window.matchMedia(
-      `(max-width: ${this.config.settings.breakpoints.tablet - 1}px)`
-    );
-    
-    const handleResize = (e) => {
-      if (e.matches) {
-        // Móvil: sidebar como overlay
-        this.components.sidebar.classList.add('sidebar--overlay');
-        if (this.state.state.sidebar.isOpen) {
-          this.components.overlay.classList.add('sidebar-overlay--visible');
-        }
-      } else {
-        // Desktop: sidebar fijo
-        this.components.sidebar.classList.remove('sidebar--overlay');
-        this.components.overlay.classList.remove('sidebar-overlay--visible');
-      }
-    };
-    
-    mediaQuery.addEventListener('change', handleResize);
-    handleResize(mediaQuery); // Ejecutar inmediatamente
-  }
-  
-  initUtilities() {
-    // Scroll observer
-    import('./utils/scroll-observer.js').then(module => {
-      new module.ScrollObserver(this.state, this.config.topBar.scrollBehavior.threshold);
-    });
-    
-    // Touch gestures (solo móvil)
-    if ('ontouchstart' in window) {
-      import('./utils/touch-gestures.js').then(module => {
-        new module.TouchGestureHandler(document.body, {
-          onSwipeRight: () => {
-            if (window.innerWidth < this.config.settings.breakpoints.tablet) {
-              if (!this.state.state.sidebar.isOpen) {
-                this.state.toggleSidebar();
-              }
-            }
-          },
-          onSwipeLeft: () => {
-            if (window.innerWidth < this.config.settings.breakpoints.tablet) {
-              if (this.state.state.sidebar.isOpen) {
-                this.state.toggleSidebar();
-              }
-            }
-          }
-        });
-      });
-    }
-    
-    // Keyboard navigation
-    import('./utils/keyboard-nav.js').then(module => {
-      new module.KeyboardNavigationHandler(this.state);
-    });
   }
   
   updateMainContentMargin(isOpen) {
-    // No aplicar margin en móvil (sidebar es overlay)
-    if (window.innerWidth < this.config.settings.breakpoints.tablet) {
+    // En móvil, sin margen
+    if (window.innerWidth < 750) {
       this.components.mainContent.style.marginLeft = '0';
       return;
     }
     
+    // En desktop, ajustar según estado
     const margin = isOpen ?
       this.config.settings.sidebarWidth.open :
       this.config.settings.sidebarWidth.collapsed;
     
     this.components.mainContent.style.marginLeft = margin;
+  }
+  
+  initUtilities() {
+    // Scroll observer
+    import('/template/utils/scroll-observer.js').then(module => {
+      new module.ScrollObserver(this.state, this.config.topBar.scrollBehavior.threshold);
+    }).catch(err => {
+      console.error('❌ Error cargando scroll-observer:', err);
+    });
+    
+    // Touch gestures (solo móvil)
+    if ('ontouchstart' in window && window.innerWidth < 750) {
+      import('/template/utils/touch-gestures.js').then(module => {
+        new module.TouchGestureHandler(document.body, {
+          onSwipeRight: () => {
+            if (!this.state.state.sidebar.isOpen) {
+              this.state.toggleSidebar();
+            }
+          },
+          onSwipeLeft: () => {
+            if (this.state.state.sidebar.isOpen) {
+              this.state.toggleSidebar();
+            }
+          }
+        });
+      }).catch(err => {
+        console.error('❌ Error cargando touch-gestures:', err);
+      });
+    }
+    
+    // Keyboard navigation
+    import('/template/utils/keyboard-nav.js').then(module => {
+      new module.KeyboardNavigationHandler(this.state);
+    }).catch(err => {
+      console.error('❌ Error cargando keyboard-nav:', err);
+    });
   }
   
   // API pública
@@ -211,33 +193,5 @@ export class TemplateManager {
     const oldSidebar = this.components.sidebar;
     this.components.sidebar = renderSidebar(this.config.sidebar, this.state);
     oldSidebar.replaceWith(this.components.sidebar);
-  }
-  
-  showLoading(message = 'Cargando...') {
-    const spinner = el('div.loading-overlay', {
-      style: {
-        position: 'fixed',
-        inset: '0',
-        background: 'rgba(255, 255, 255, 0.9)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: '9999'
-      }
-    }, [
-      el('div.text-center', {}, [
-        el('div.loading-spinner', {}),
-        el('p.mt-4', {}, message)
-      ])
-    ]);
-    
-    document.body.appendChild(spinner);
-    return spinner;
-  }
-  
-  hideLoading(spinner) {
-    if (spinner && spinner.parentNode) {
-      spinner.parentNode.removeChild(spinner);
-    }
   }
 }

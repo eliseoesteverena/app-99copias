@@ -3,63 +3,53 @@ import { el } from '../../mount.js';
 export function renderSidebarItem(item, state, isCollapsed) {
   const isActive = item.active || window.location.pathname === item.href;
   const hasSubItems = item.subItems && item.subItems.length > 0;
-  const isExpanded = state.state.sidebar.expandedItems.includes(item.id);
   
-  // Contenedor del item + subitems
   const container = document.createElement('div');
   container.className = 'sidebar-item-container';
   
-  // Item principal
-  const itemElement = el(hasSubItems ? 'div' : 'a', {
-    href: hasSubItems ? undefined : (item.href || '#'),
-    class: [
-      'sidebar-item',
-      isActive ? 'sidebar-item--active' : '',
-      hasSubItems && isExpanded ? 'sidebar-item--expanded' : ''
-    ].filter(Boolean).join(' '),
-    'data-tooltip': item.tooltip,
-    'data-item-id': item.id,
-    onclick: (e) => {
-      if (hasSubItems) {
-        e.preventDefault();
-        toggleSubItems(item.id, container);
-      } else if (window.innerWidth < 768) {
-        state.toggleSidebar();
+  // Item principal (solo si tiene href o NO tiene subitems)
+  if (!hasSubItems || item.href) {
+    const itemElement = el('a', {
+      href: item.href || '#',
+      class: ['sidebar-item', isActive ? 'sidebar-item--active' : ''].filter(Boolean).join(' '),
+      'data-tooltip': isCollapsed ? item.tooltip : null,
+      onclick: (e) => {
+        if (!item.href || item.href === '#') {
+          e.preventDefault();
+        }
+        if (window.innerWidth < 768) {
+          state.toggleSidebar();
+        }
       }
+    }, [
+      el('span', { class: 'sidebar-item-icon' },
+        typeof item.icon === 'string' ? item.icon : renderIcon(item.icon)
+      ),
+      el('span', { class: 'sidebar-item-label' }, item.label)
+    ]);
+    
+    // Tooltip en colapsado
+    if (isCollapsed) {
+      itemElement.addEventListener('mouseenter', (e) => showTooltip(e, item.tooltip));
+      itemElement.addEventListener('mouseleave', hideTooltip);
     }
-  }, [
-    // Icon
-    el('span', { class: 'sidebar-item-icon' },
-      typeof item.icon === 'string' ? item.icon : renderIcon(item.icon)
-    ),
     
-    // Label
-    el('span', { class: 'sidebar-item-label' }, item.label),
-    
-    // Arrow para subitems
-    hasSubItems ? el('span', { class: 'sidebar-item-arrow' }, '›') : null
-  ].filter(Boolean));
+    container.appendChild(itemElement);
+  }
   
-  container.appendChild(itemElement);
-  
-  // SubItems container
+  // Sub-items (siempre visibles)
   if (hasSubItems) {
-    const subItemsContainer = el('div', {
-      class: 'sidebar-subitems',
-      style: {
-        display: isExpanded ? 'block' : 'none'
-      }
-    });
-    
-    // Crear cada subitem individualmente
     item.subItems.forEach(subItem => {
+      const subItemActive = window.location.pathname === subItem.href;
+      
       const subItemEl = el('a', {
         href: subItem.href || '#',
-        class: 'sidebar-item sidebar-subitem',
-        style: {
-          display: 'flex', // ← CRITICAL: Asegurar que sea flex block
-          width: '100%' // ← CRITICAL: Ancho completo
-        },
+        class: [
+          'sidebar-item',
+          'sidebar-subitem',
+          subItemActive ? 'sidebar-item--active' : ''
+        ].filter(Boolean).join(' '),
+        'data-tooltip': isCollapsed ? subItem.label : null,
         onclick: (e) => {
           if (window.innerWidth < 768) {
             state.toggleSidebar();
@@ -70,40 +60,14 @@ export function renderSidebarItem(item, state, isCollapsed) {
         el('span', { class: 'sidebar-item-label' }, subItem.label)
       ].filter(Boolean));
       
-      subItemsContainer.appendChild(subItemEl);
+      // Tooltip en colapsado
+      if (isCollapsed) {
+        subItemEl.addEventListener('mouseenter', (e) => showTooltip(e, subItem.label));
+        subItemEl.addEventListener('mouseleave', hideTooltip);
+      }
+      
+      container.appendChild(subItemEl);
     });
-    
-    container.appendChild(subItemsContainer);
-  }
-  
-  // Tooltip para modo colapsado
-  if (isCollapsed && item.tooltip) {
-    itemElement.addEventListener('mouseenter', (e) => showTooltip(e, item.tooltip));
-    itemElement.addEventListener('mouseleave', hideTooltip);
-  }
-  
-  function toggleSubItems(itemId, container) {
-    const subItemsEl = container.querySelector('.sidebar-subitems');
-    const itemEl = container.querySelector('.sidebar-item');
-    
-    if (!subItemsEl) return;
-    
-    const isCurrentlyExpanded = state.state.sidebar.expandedItems.includes(itemId);
-    
-    if (isCurrentlyExpanded) {
-      // Cerrar
-      state.state.sidebar.expandedItems = state.state.sidebar.expandedItems.filter(id => id !== itemId);
-      subItemsEl.style.display = 'none';
-      itemEl.classList.remove('sidebar-item--expanded');
-    } else {
-      // Abrir
-      state.state.sidebar.expandedItems.push(itemId);
-      subItemsEl.style.display = 'block';
-      itemEl.classList.add('sidebar-item--expanded');
-    }
-    
-    // Guardar estado
-    state.saveExpandedItems();
   }
   
   return container;
