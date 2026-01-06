@@ -4,41 +4,60 @@ export function renderSidebarItem(item, state, isCollapsed) {
   const isActive = item.active || window.location.pathname === item.href;
   const hasSubItems = item.subItems && item.subItems.length > 0;
   
+  // Verificar si este item está expandido
+  const isExpanded = state.state.sidebar.expandedItems.includes(item.id);
+  
   const container = document.createElement('div');
   container.className = 'sidebar-item-container';
+  container.setAttribute('data-item-id', item.id);
   
-  // Item principal (solo si tiene href o NO tiene subitems)
-  if (!hasSubItems || item.href) {
-    const itemElement = el('a', {
-      href: item.href || '#',
-      class: ['sidebar-item', isActive ? 'sidebar-item--active' : ''].filter(Boolean).join(' '),
-      'data-tooltip': isCollapsed ? item.tooltip : null,
-      onclick: (e) => {
+  // Item principal
+  const itemElement = el(hasSubItems ? 'button' : 'a', {
+    href: hasSubItems ? undefined : (item.href || '#'),
+    class: [
+      'sidebar-item',
+      isActive && !hasSubItems ? 'sidebar-item--active' : '',
+      hasSubItems && isExpanded ? 'sidebar-item--expanded' : ''
+    ].filter(Boolean).join(' '),
+    'data-tooltip': isCollapsed ? item.tooltip : null,
+    onclick: (e) => {
+      if (hasSubItems) {
+        e.preventDefault();
+        toggleSubItems(item.id, container, state);
+      } else {
         if (!item.href || item.href === '#') {
           e.preventDefault();
         }
-        if (window.innerWidth < 768) {
+        if (window.innerWidth < 750) {
           state.toggleSidebar();
         }
       }
-    }, [
-      el('span', { class: 'sidebar-item-icon' },
-        typeof item.icon === 'string' ? item.icon : renderIcon(item.icon)
-      ),
-      el('span', { class: 'sidebar-item-label' }, item.label)
-    ]);
-    
-    // Tooltip en colapsado
-    if (isCollapsed) {
-      itemElement.addEventListener('mouseenter', (e) => showTooltip(e, item.tooltip));
-      itemElement.addEventListener('mouseleave', hideTooltip);
     }
-    
-    container.appendChild(itemElement);
+  }, [
+    el('span', { class: 'sidebar-item-icon' },
+      typeof item.icon === 'string' ? item.icon : renderIcon(item.icon)
+    ),
+    el('span', { class: 'sidebar-item-label' }, item.label),
+    hasSubItems ? el('span', { class: 'sidebar-item-arrow' }, '›') : null
+  ].filter(Boolean));
+  
+  // Tooltip en colapsado
+  if (isCollapsed && item.tooltip) {
+    itemElement.addEventListener('mouseenter', (e) => showTooltip(e, item.tooltip));
+    itemElement.addEventListener('mouseleave', hideTooltip);
   }
   
-  // Sub-items (siempre visibles)
+  container.appendChild(itemElement);
+  
+  // Sub-items (inicialmente ocultos, se muestran al expandir)
   if (hasSubItems) {
+    const subItemsContainer = el('div', {
+      class: 'sidebar-subitems',
+      style: {
+        display: isExpanded && !isCollapsed ? 'block' : 'none'
+      }
+    });
+    
     item.subItems.forEach(subItem => {
       const subItemActive = window.location.pathname === subItem.href;
       
@@ -51,7 +70,7 @@ export function renderSidebarItem(item, state, isCollapsed) {
         ].filter(Boolean).join(' '),
         'data-tooltip': isCollapsed ? subItem.label : null,
         onclick: (e) => {
-          if (window.innerWidth < 768) {
+          if (window.innerWidth < 750) {
             state.toggleSidebar();
           }
         }
@@ -66,11 +85,40 @@ export function renderSidebarItem(item, state, isCollapsed) {
         subItemEl.addEventListener('mouseleave', hideTooltip);
       }
       
-      container.appendChild(subItemEl);
+      subItemsContainer.appendChild(subItemEl);
     });
+    
+    container.appendChild(subItemsContainer);
   }
   
   return container;
+}
+
+function toggleSubItems(itemId, container, state) {
+  const subItemsEl = container.querySelector('.sidebar-subitems');
+  const itemEl = container.querySelector('.sidebar-item');
+  
+  if (!subItemsEl) return;
+  
+  const isCurrentlyExpanded = state.state.sidebar.expandedItems.includes(itemId);
+  
+  if (isCurrentlyExpanded) {
+    // Cerrar
+    state.state.sidebar.expandedItems = state.state.sidebar.expandedItems.filter(id => id !== itemId);
+    subItemsEl.style.display = 'none';
+    itemEl.classList.remove('sidebar-item--expanded');
+  } else {
+    // Abrir
+    state.state.sidebar.expandedItems.push(itemId);
+    subItemsEl.style.display = 'block';
+    itemEl.classList.add('sidebar-item--expanded');
+  }
+  
+  // Guardar estado (opcional)
+  localStorage.setItem(
+    'template:sidebar:expanded',
+    JSON.stringify(state.state.sidebar.expandedItems)
+  );
 }
 
 function renderIcon(iconConfig) {

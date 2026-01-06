@@ -427,9 +427,10 @@
 
 /* === SUBITEMS === */
 .sidebar-subitems {
-  display: block;
   background: var(--color-gray-50);
   width: 100%;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
 }
 
 .sidebar-subitem {
@@ -449,6 +450,17 @@
   width: 20px;
 }
 
+/* Ocultar subitems en modo colapsado */
+.sidebar--collapsed .sidebar-subitems {
+  display: none !important;
+}
+
+/* En móvil, mantener comportamiento normal */
+@media (max-width: 749px) {
+  .sidebar .sidebar-subitems {
+    background: var(--color-gray-50);
+  }
+}
 /* === SEARCH BUTTON EN SIDEBAR === */
 .sidebar-search-button {
   border-bottom: 1px solid var(--color-gray-200);
