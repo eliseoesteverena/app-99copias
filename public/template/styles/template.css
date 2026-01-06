@@ -282,13 +282,82 @@
   transition: width 0.3s ease, transform 0.3s ease;
 }
 
-.sidebar-content {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 1rem 0;
+/* === RESPONSIVE === */
+
+/* Móvil (< 750px) */
+@media (max-width: 749px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: var(--sidebar-width-open);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Cuando el estado isOpen es true, quitar collapsed class y mostrar */
+  .sidebar.sidebar--mobile-open {
+    transform: translateX(0);
+  }
+  
+  /* En móvil NO usar la clase collapsed para ocultar */
+  .sidebar.sidebar--collapsed {
+    width: var(--sidebar-width-open);
+    transform: translateX(-100%);
+  }
+  
+  .sidebar.sidebar--collapsed.sidebar--mobile-open {
+    transform: translateX(0);
+  }
+  
+  /* Forzar labels visibles en móvil */
+  .sidebar .sidebar-item-label,
+  .sidebar .sidebar-search-kbd {
+    display: block !important;
+  }
+  
+  .sidebar .sidebar-item {
+    justify-content: flex-start !important;
+    padding-left: 1rem !important;
+  }
+  
+  .main-content {
+    margin-left: 0 !important;
+  }
+  
+  .user-name {
+    display: none;
+  }
+  
+  .user-dropdown {
+    right: -0.5rem;
+  }
+  
+  .search-modal-container {
+    width: 95%;
+    max-height: 80vh;
+  }
 }
 
+/* Desktop (>= 750px) */
+@media (min-width: 750px) {
+  .sidebar {
+    transform: translateX(0) !important;
+  }
+  
+  .sidebar--collapsed {
+    width: var(--sidebar-width-collapsed);
+  }
+  
+  .main-content {
+    margin-left: var(--sidebar-width-open);
+  }
+  
+  body:has(.sidebar--collapsed) .main-content {
+    margin-left: var(--sidebar-width-collapsed);
+  }
+  
+  .sidebar-overlay {
+    display: none !important;
+  }
+}
 /* === SIDEBAR ITEMS === */
 .sidebar-item-container {
   position: relative;
@@ -762,16 +831,6 @@
 
 /* Móvil (< 750px) */
 @media (max-width: 749px) {
-  .sidebar {
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  .sidebar:not(.sidebar--collapsed) {
-    transform: translateX(0);
-  }
-  
   .main-content {
     margin-left: 0 !important;
   }
@@ -792,13 +851,6 @@
 
 /* Desktop (>= 750px) */
 @media (min-width: 750px) {
-  .sidebar {
-    transform: translateX(0);
-  }
-  
-  .sidebar--collapsed {
-    width: var(--sidebar-width-collapsed);
-  }
   
   .main-content {
     margin-left: var(--sidebar-width-open);
