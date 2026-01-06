@@ -6,7 +6,7 @@ export class StateManager {
       sidebar: {
         isOpen: this.loadSidebarState(),
         activeItem: null,
-        expandedItems: [] // Ya no se usa, pero lo dejamos por compatibilidad
+        expandedItems: this.loadExpandedItems()
       },
       topBar: {
         isCompact: false,
@@ -50,7 +50,6 @@ export class StateManager {
   }
   
   loadExpandedItems() {
-    // Ya no se usa, pero lo dejamos por si acaso
     try {
       const stored = localStorage.getItem('template:sidebar:expanded');
       return stored ? JSON.parse(stored) : [];
@@ -60,56 +59,71 @@ export class StateManager {
   }
   
   saveExpandedItems() {
-    // Ya no se usa
+    try {
+      localStorage.setItem(
+        'template:sidebar:expanded',
+        JSON.stringify(this.state.sidebar.expandedItems)
+      );
+    } catch (error) {
+      console.error('Error guardando items expandidos:', error);
+    }
   }
   
   toggleSidebar() {
-    const wasMobile = window.innerWidth < 750;
+    const isMobile = window.innerWidth < 750;
     
     this.state.sidebar.isOpen = !this.state.sidebar.isOpen;
     this.saveSidebarState();
-    this.emit('sidebar:toggle', this.state.sidebar.isOpen);
+    this.emit('sidebar:toggle', { isOpen: this.state.sidebar.isOpen, isMobile });
+  }
+  
+  handleResize() {
+    const isMobile = window.innerWidth < 750;
+    const wasMobile = this.state._wasMobile !== undefined ? this.state._wasMobile : isMobile;
     
-    // En móvil, mostrar/ocultar overlay
-    if (wasMobile) {
-      const overlay = document.querySelector('.sidebar-overlay');
-      if (overlay) {
+    // Solo actuar si cambió de móvil a desktop o viceversa
+    if (isMobile !== wasMobile) {
+      this.state._wasMobile = isMobile;
+      
+      if (isMobile) {
+        // Cambió a móvil: cerrar sidebar si estaba abierto
         if (this.state.sidebar.isOpen) {
-          overlay.classList.add('sidebar-overlay--visible');
-        } else {
-          overlay.classList.remove('sidebar-overlay--visible');
+          this.state.sidebar.isOpen = false;
+          this.emit('sidebar:toggle', { isOpen: false, isMobile: true });
+        }
+      } else {
+        // Cambió a desktop: restaurar estado guardado
+        const savedState = this.loadSidebarState();
+        if (savedState !== this.state.sidebar.isOpen) {
+          this.state.sidebar.isOpen = savedState;
+          this.emit('sidebar:toggle', { isOpen: savedState, isMobile: false });
         }
       }
     }
   }
   
-  handleResize() {
-    const isMobile = window.innerWidth < 750;
-    const sidebar = document.getElementById('sidebar');
+  setActiveItem(itemId) {
+    this.state.sidebar.activeItem = itemId;
+    this.emit('sidebar:active-changed', itemId);
+  }
+  
+  toggleExpandedItem(itemId) {
+    const index = this.state.sidebar.expandedItems.indexOf(itemId);
     
-    if (!sidebar) return;
-    
-    if (isMobile) {
-      // En móvil: añadir clase overlay
-      sidebar.classList.add('sidebar--overlay');
-      sidebar.classList.remove('sidebar--collapsed');
-      
-      // Si estaba abierto en desktop y cambió a móvil, cerrar
-      if (this.state.sidebar.isOpen) {
-        this.state.sidebar.isOpen = false;
-        this.emit('sidebar:toggle', false);
-      }
+    if (index > -1) {
+      // Cerrar
+      this.state.sidebar.expandedItems.splice(index, 1);
     } else {
-      // En desktop: quitar clase overlay
-      sidebar.classList.remove('sidebar--overlay');
-      
-      // Restaurar estado guardado
-      const savedState = this.loadSidebarState();
-      if (savedState !== this.state.sidebar.isOpen) {
-        this.state.sidebar.isOpen = savedState;
-        this.emit('sidebar:toggle', savedState);
-      }
+      // Abrir
+      this.state.sidebar.expandedItems.push(itemId);
     }
+    
+    this.saveExpandedItems();
+    this.emit('sidebar:expanded-changed', this.state.sidebar.expandedItems);
+  }
+  
+  isItemExpanded(itemId) {
+    return this.state.sidebar.expandedItems.includes(itemId);
   }
   
   // Event system
@@ -122,44 +136,37 @@ export class StateManager {
   
   emit(event, data) {
     if (this.listeners.has(event)) {
-      this.listeners.get(event).forEach(callback => callback(data));
+      this.listeners.get(event).forEach(callback => {
+        try {
+          callback(data);
+        } catch (error) {
+          console.error(`Error en listener de evento ${event}:`, error);
+        }
+      });
     }
   }
   
   off(event, callback) {
     if (!this.listeners.has(event)) return;
+    
     const callbacks = this.listeners.get(event);
     const index = callbacks.indexOf(callback);
+    
     if (index > -1) {
       callbacks.splice(index, 1);
     }
   }
-  constructor(config, authIntegration) {
-  this.config = config;
-  this.auth = authIntegration;
-  this.state = {
-    sidebar: {
-      isOpen: this.loadSidebarState(),
-      activeItem: null,
-      expandedItems: this.loadExpandedItems() // ← Cargar items expandidos
-    },
-    topBar: {
-      isCompact: false,
-      scrollY: 0
-    },
-    user: null
-  };
   
-  this.listeners = new Map();
-  this.init();
-}
-
-loadExpandedItems() {
-  try {
-    const stored = localStorage.getItem('template:sidebar:expanded');
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
+  // Método para limpiar todos los listeners (útil para cleanup)
+  removeAllListeners() {
+    this.listeners.clear();
   }
-}
+  
+  // Método para obtener el estado actual (útil para debugging)
+  getState() {
+    return {
+      ...this.state,
+      isMobile: window.innerWidth < 750
+    };
+  }
 }
