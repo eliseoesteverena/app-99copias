@@ -11,6 +11,12 @@ import { renderTrabajos } from './pages/trabajos.js';
 import { renderClientes } from './pages/clientes.js';
 import { renderReportes } from './pages/reportes.js';*/
 import { renderLogin } from './pages/login.js';
+import { renderClientes } from './pages/clientes.js';
+import { renderEmpresas } from './pages/empresas.js';
+import { renderTrabajos } from './pages/trabajos.js';
+import { renderEquipo } from './pages/equipo.js';
+import { renderConfiguracionGrupo } from './pages/configuracion-grupo.js';
+
 
 // Definición de rutas
 const routes = [
@@ -31,7 +37,39 @@ const routes = [
     component: renderDashboard,
     title: 'Dashboard',
     requiresAuth: true
-  },/*
+  },
+  {
+  path: '/clientes',
+  component: renderClientes,
+  title: 'Clientes',
+  requiresAuth: true
+},
+{
+  path: '/empresas',
+  component: renderEmpresas,
+  title: 'Empresas',
+  requiresAuth: true
+},
+{
+  path: '/trabajos',
+  component: renderTrabajos,
+  title: 'Trabajos',
+  requiresAuth: true
+},
+{
+  path: '/equipo',
+  component: renderEquipo,
+  title: 'Mi Equipo',
+  requiresAuth: true
+},
+{
+  path: '/configuracion-grupo',
+  component: renderConfiguracionGrupo,
+  title: 'Configuración del Grupo',
+  requiresAuth: true,
+  permissions: ['admin']
+}
+  /*
   {
     path: '/ventas',
     component: renderVentas,
