@@ -33,7 +33,7 @@ export async function renderTrabajos(container, params) {
         
         const { data: { user } } = await supabase.auth.getUser();
         const { data: perfil } = await supabase
-          .from('perfiles')
+          .from('profiles')
           .select('grupo_id')
           .eq('id', user.id)
           .single();
@@ -44,7 +44,7 @@ export async function renderTrabajos(container, params) {
           *,
           cliente:clientes(id, nombre),
           empresa:empresas(id, nombre),
-          creador:perfiles!trabajos_created_user_id_fkey(id, name)
+          creador:profiles!trabajos_created_user_id_fkey(id, name)
         `)
           .eq('grupo_id', perfil.grupo_id)
           .order('fecha_entrega', { ascending: true });
@@ -64,7 +64,7 @@ export async function renderTrabajos(container, params) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         const { data: perfil } = await supabase
-          .from('perfiles')
+          .from('profiles')
           .select('grupo_id')
           .eq('id', user.id)
           .single();
@@ -86,7 +86,7 @@ export async function renderTrabajos(container, params) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         const { data: perfil } = await supabase
-          .from('perfiles')
+          .from('profiles')
           .select('grupo_id')
           .eq('id', user.id)
           .single();
@@ -119,7 +119,7 @@ export async function renderTrabajos(container, params) {
         
         const { data: { user } } = await supabase.auth.getUser();
         const { data: perfil } = await supabase
-          .from('perfiles')
+          .from('profiles')
           .select('grupo_id')
           .eq('id', user.id)
           .single();
