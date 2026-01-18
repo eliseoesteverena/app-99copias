@@ -117,7 +117,7 @@ export const createDefaultConfig = (currentPage = '/') => {
           type: 'item',
           label: 'Trabajos',
           icon: '🔧',
-          href: '#/jobs',
+          href: '/trabajos',
           tooltip: 'Gestión de trabajos'
         },
         {
@@ -125,7 +125,7 @@ export const createDefaultConfig = (currentPage = '/') => {
           type: 'item',
           label: 'Clientes',
           icon: '👥',
-          href: '#/clientes',
+          href: '/clientes',
           tooltip: 'Base de clientes'
         },
         {
