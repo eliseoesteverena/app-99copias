@@ -128,6 +128,14 @@ export const createDefaultConfig = (currentPage = '/') => {
           href: '/clientes',
           tooltip: 'Base de clientes'
         },
+{
+  id: 'empresas',
+  type: 'item',
+  label: 'Empresas',
+  icon: '🏬',
+  href: '/empresas',
+  tooltip: 'Base de clientes'
+},
         {
           id: 'reports',
           type: 'item',
