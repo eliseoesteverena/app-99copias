@@ -1,3 +1,4 @@
+// clientes.js
 import { el, mount } from '../mount.js';
 import { supabase } from '../config.js';
 
@@ -6,18 +7,26 @@ export async function renderClientes(container, params) {
   let clientes = [];
   let loading = true;
   let error = null;
-  let searchTerm = '';
   let editingCliente = null;
   let showForm = false;
-  let showFilters = false;
-  let currentView = 'auto'; // 'auto', 'table', 'cards', 'details'
+  let currentView = 'cards'; // 'cards' o 'details'
 
   // 2. Inicialización
   await init();
 
   // 3. Funciones auxiliares
   async function init() {
-    await loadClientes();
+    // Si hay ID en params, abrir modal de edición
+    if (params?.id) {
+      await loadClientes();
+      const cliente = clientes.find(c => c.id === params.id);
+      if (cliente) {
+        editingCliente = cliente;
+        showForm = true;
+      }
+    } else {
+      await loadClientes();
+    }
     render();
   }
 
@@ -25,7 +34,7 @@ export async function renderClientes(container, params) {
     try {
       loading = true;
       render();
-
+      
       const { data: { user } } = await supabase.auth.getUser();
       const { data: perfil } = await supabase
         .from('perfiles')
@@ -85,8 +94,7 @@ export async function renderClientes(container, params) {
         if (err) throw err;
       }
 
-      showForm = false;
-      editingCliente = null;
+      closeModal();
       await loadClientes();
     } catch (err) {
       console.error('Error al guardar cliente:', err);
@@ -114,26 +122,22 @@ export async function renderClientes(container, params) {
   function handleEdit(cliente) {
     editingCliente = cliente;
     showForm = true;
+    // Actualizar URL sin recargar
+    window.history.pushState({}, '', `#/clientes/${cliente.id}`);
     render();
   }
 
-  function handleSearch(term) {
-    searchTerm = term.toLowerCase();
+  function closeModal() {
+    showForm = false;
+    editingCliente = null;
+    // Volver a URL base
+    window.history.pushState({}, '', '#/clientes');
     render();
-  }
-
-  function getFilteredClientes() {
-    if (!searchTerm) return clientes;
-    return clientes.filter(c =>
-      c.nombre.toLowerCase().includes(searchTerm) ||
-      (c.apellido && c.apellido.toLowerCase().includes(searchTerm)) ||
-      c.email.toLowerCase().includes(searchTerm)
-    );
   }
 
   function getFullName(cliente) {
-    return cliente.apellido 
-      ? `${cliente.nombre} ${cliente.apellido}` 
+    return cliente.apellido
+      ? `${cliente.nombre} ${cliente.apellido}`
       : cliente.nombre;
   }
 
@@ -158,51 +162,46 @@ export async function renderClientes(container, params) {
       return;
     }
 
-    const filteredClientes = getFilteredClientes();
-
     mount(container, 'div', { class: 'container p-4 sm:p-6' }, [
       // Header
       renderHeader(),
 
-      // Formulario (condicional)
-      showForm ? renderForm() : null,
+      // Búsqueda global hint
+      renderSearchHint(),
 
-      // Búsqueda y controles
-      renderSearchAndControls(),
-
-      // Filtros drawer (mobile)
-      showFilters ? renderFiltersDrawer() : null,
+      // Controles de vista
+      renderViewToggle(),
 
       // Empty state
-      filteredClientes.length === 0
+      clientes.length === 0
         ? renderEmptyState()
         : el('div', {}, [
-            // Vista Details (móvil < 640px)
-            currentView === 'details' || currentView === 'auto' ?
-              el('div', { class: currentView === 'auto' ? 'block sm:hidden' : 'block' },
-                renderDetailsList(filteredClientes)
-              ) : null,
+            // Vista Details (móvil)
+            currentView === 'details'
+              ? renderDetailsList(clientes)
+              : null,
 
-            // Vista Cards (tablet 640-767px)
-            currentView === 'cards' || currentView === 'auto' ?
-              el('div', { class: currentView === 'auto' ? 'hidden sm:block md:hidden' : 'block' },
-                renderCardsGrid(filteredClientes)
-              ) : null,
-
-            // Vista Tabla (desktop ≥ 768px)
-            currentView === 'table' || currentView === 'auto' ?
-              el('div', { class: currentView === 'auto' ? 'hidden md:block' : 'block' },
-                renderTable(filteredClientes)
-              ) : null
+            // Vista Cards (default)
+            currentView === 'cards'
+              ? renderCardsGrid(clientes)
+              : null
           ].filter(Boolean))
     ].filter(Boolean));
+
+    // Modal (fuera del flujo)
+    if (showForm) {
+      mount(container, 'div', {}, [renderModal()]);
+    }
   }
 
   function renderHeader() {
-    return el('div', { class: 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6' }, [
+    return el('div', { 
+      class: 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6' 
+    }, [
       el('h1', { class: 'text-2xl sm:text-3xl font-bold' }, 'Clientes'),
       el('button', {
-        class: 'bg-primary text-white px-4 sm:px-6 py-2 rounded font-semibold w-full sm:w-auto',
+        class: 'bg-primary text-white px-4 sm:px-6 py-2 rounded font-semibold',
+        style: { width: 'fit-content' },
         onclick: () => {
           editingCliente = null;
           showForm = true;
@@ -212,30 +211,10 @@ export async function renderClientes(container, params) {
     ]);
   }
 
-  function renderSearchAndControls() {
-    return el('div', { class: 'mb-6 space-y-4' }, [
-      // Barra de búsqueda
-      el('div', { class: 'flex gap-2' }, [
-        el('input', {
-          type: 'text',
-          placeholder: '🔍 Buscar por nombre o email...',
-          class: 'flex-1 p-3 border rounded',
-          value: searchTerm,
-          oninput: (e) => handleSearch(e.target.value)
-        }),
-        // Botón filtros (móvil)
-        el('button', {
-          class: 'sm:hidden px-4 py-2 border rounded bg-white',
-          onclick: () => {
-            showFilters = !showFilters;
-            render();
-          }
-        }, '⚙️')
-      ]),
-
-      // Controles de vista
-      renderViewToggle()
-    ]);
+  function renderSearchHint() {
+    return el('div', { 
+      class: 'mb-4 p-3 bg-gray-50 border rounded text-sm text-gray-600 text-center' 
+    }, '💡 Presiona Ctrl+K para buscar');
   }
 
   function renderViewToggle() {
@@ -248,21 +227,7 @@ export async function renderClientes(container, params) {
       }`;
     };
 
-    return el('div', { class: 'flex gap-2 overflow-x-auto pb-2' }, [
-      el('button', {
-        class: buttonClass('auto'),
-        onclick: () => {
-          currentView = 'auto';
-          render();
-        }
-      }, '📱 Auto'),
-      el('button', {
-        class: buttonClass('table'),
-        onclick: () => {
-          currentView = 'table';
-          render();
-        }
-      }, '🗂️ Tabla'),
+    return el('div', { class: 'flex gap-2 mb-6' }, [
       el('button', {
         class: buttonClass('cards'),
         onclick: () => {
@@ -280,133 +245,127 @@ export async function renderClientes(container, params) {
     ]);
   }
 
-  function renderFiltersDrawer() {
-    return el('div', {
-      class: 'fixed inset-0 bg-gray-900 bg-opacity-50 z-50',
-      onclick: (e) => {
-        if (e.target === e.currentTarget) {
-          showFilters = false;
-          render();
-        }
-      }
-    }, [
-      el('div', { class: 'fixed right-0 top-0 h-full w-80 bg-white p-6 shadow-lg' }, [
-        el('div', { class: 'flex justify-between items-center mb-6' }, [
-          el('h2', { class: 'text-xl font-bold' }, 'Filtros'),
-          el('button', {
-            class: 'text-2xl',
-            onclick: () => {
-              showFilters = false;
-              render();
-            }
-          }, '×')
-        ]),
-        el('p', { class: 'text-gray-600' }, 'Filtros adicionales próximamente...')
-      ])
-    ]);
-  }
-
   function renderEmptyState() {
     return el('div', { class: 'text-center p-8 bg-gray-50 rounded-lg' }, [
       el('div', { class: 'text-6xl mb-4' }, '📭'),
-      el('h3', { class: 'text-xl font-bold mb-2' }, 
-        searchTerm ? 'No se encontraron clientes' : 'No hay clientes registrados'
-      ),
-      el('p', { class: 'text-gray-600 mb-4' }, 
-        searchTerm 
-          ? 'Intenta con otro término de búsqueda'
-          : 'Comienza agregando tu primer cliente'
-      ),
-      !searchTerm ? el('button', {
+      el('h3', { class: 'text-xl font-bold mb-2' }, 'No hay clientes registrados'),
+      el('p', { class: 'text-gray-600 mb-4' }, 'Comienza agregando tu primer cliente'),
+      el('button', {
         class: 'bg-primary text-white px-6 py-2 rounded font-semibold',
+        style: { width: 'fit-content' },
         onclick: () => {
           showForm = true;
           render();
         }
-      }, '+ Crear Primer Cliente') : null
-    ].filter(Boolean));
+      }, '+ Crear Primer Cliente')
+    ]);
   }
 
-  function renderForm() {
-    return el('div', { class: 'bg-gray-50 p-4 sm:p-6 rounded-lg mb-6 border' }, [
-      el('h2', { class: 'text-xl font-bold mb-4' },
-        editingCliente ? 'Editar Cliente' : 'Nuevo Cliente'
-      ),
-      el('form', {
-        class: 'max-w-2xl',
-        onsubmit: (e) => {
-          e.preventDefault();
-          handleSubmit(new FormData(e.target));
+  function renderModal() {
+    return el('div', {
+      class: 'fixed inset-0 z-50 flex items-center justify-center p-4',
+      style: {
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backdropFilter: 'blur(4px)'
+      },
+      onclick: (e) => {
+        if (e.target === e.currentTarget) {
+          closeModal();
         }
+      }
+    }, [
+      el('div', { 
+        class: 'bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto',
+        onclick: (e) => e.stopPropagation()
       }, [
-        el('div', { class: 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-4' }, [
-          // Nombre
-          el('div', {}, [
-            el('label', { class: 'block mb-2 font-semibold' }, 'Nombre *'),
-            el('input', {
-              type: 'text',
-              name: 'nombre',
-              class: 'w-full p-2 border rounded',
-              required: true,
-              value: editingCliente?.nombre || ''
-            })
-          ]),
-          // Apellido
-          el('div', {}, [
-            el('label', { class: 'block mb-2 font-semibold' }, 'Apellido'),
-            el('input', {
-              type: 'text',
-              name: 'apellido',
-              class: 'w-full p-2 border rounded',
-              value: editingCliente?.apellido || ''
-            })
-          ])
-        ]),
-        el('div', { class: 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-4' }, [
-          // Email
-          el('div', {}, [
-            el('label', { class: 'block mb-2 font-semibold' }, 'Email *'),
-            el('input', {
-              type: 'email',
-              name: 'email',
-              class: 'w-full p-2 border rounded',
-              required: true,
-              value: editingCliente?.email || ''
-            })
-          ]),
-          // Teléfono
-          el('div', {}, [
-            el('label', { class: 'block mb-2 font-semibold' }, 'Teléfono'),
-            el('input', {
-              type: 'tel',
-              name: 'telefono',
-              class: 'w-full p-2 border rounded',
-              value: editingCliente?.telefono || ''
-            })
-          ])
-        ]),
-        // Botones
-        el('div', { class: 'flex flex-col sm:flex-row gap-3' }, [
+        // Header del modal
+        el('div', { class: 'flex justify-between items-center p-6 border-b' }, [
+          el('h2', { class: 'text-xl font-bold' },
+            editingCliente ? 'Editar Cliente' : 'Nuevo Cliente'
+          ),
           el('button', {
-            type: 'submit',
-            class: 'bg-primary text-white px-6 py-2 rounded font-semibold'
-          }, editingCliente ? 'Actualizar' : 'Guardar'),
-          el('button', {
-            type: 'button',
-            class: 'px-6 py-2 border rounded bg-white',
-            onclick: () => {
-              showForm = false;
-              editingCliente = null;
-              render();
-            }
-          }, 'Cancelar')
+            class: 'text-2xl text-gray-500 hover:text-gray-700',
+            onclick: closeModal
+          }, '×')
+        ]),
+
+        // Formulario
+        el('form', {
+          class: 'p-6',
+          onsubmit: (e) => {
+            e.preventDefault();
+            handleSubmit(new FormData(e.target));
+          }
+        }, [
+          el('div', { class: 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-4' }, [
+            // Nombre
+            el('div', {}, [
+              el('label', { class: 'block mb-2 font-semibold' }, 'Nombre *'),
+              el('input', {
+                type: 'text',
+                name: 'nombre',
+                class: 'w-full p-2 border rounded',
+                required: true,
+                value: editingCliente?.nombre || ''
+              })
+            ]),
+
+            // Apellido
+            el('div', {}, [
+              el('label', { class: 'block mb-2 font-semibold' }, 'Apellido'),
+              el('input', {
+                type: 'text',
+                name: 'apellido',
+                class: 'w-full p-2 border rounded',
+                value: editingCliente?.apellido || ''
+              })
+            ])
+          ]),
+
+          el('div', { class: 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-6' }, [
+            // Email
+            el('div', {}, [
+              el('label', { class: 'block mb-2 font-semibold' }, 'Email *'),
+              el('input', {
+                type: 'email',
+                name: 'email',
+                class: 'w-full p-2 border rounded',
+                required: true,
+                value: editingCliente?.email || ''
+              })
+            ]),
+
+            // Teléfono
+            el('div', {}, [
+              el('label', { class: 'block mb-2 font-semibold' }, 'Teléfono'),
+              el('input', {
+                type: 'tel',
+                name: 'telefono',
+                class: 'w-full p-2 border rounded',
+                value: editingCliente?.telefono || ''
+              })
+            ])
+          ]),
+
+          // Botones
+          el('div', { class: 'flex gap-3 justify-end' }, [
+            el('button', {
+              type: 'button',
+              class: 'px-6 py-2 border rounded bg-white',
+              onclick: closeModal
+            }, 'Cancelar'),
+            el('button', {
+              type: 'submit',
+              class: 'bg-primary text-white px-6 py-2 rounded font-semibold'
+            }, editingCliente ? 'Actualizar' : 'Guardar')
+          ])
         ])
       ])
     ]);
   }
 
   function renderDetailsList(items) {
-    return el('div', { class: 'space-y-2' }, items.map(cliente =>
+    return el('div', { class: 'space-y-3' }, items.map(cliente =>
       el('details', { class: 'bg-white border rounded-lg' }, [
         el('summary', {
           class: 'p-4 cursor-pointer hover:bg-gray-50 font-semibold flex justify-between items-center'
@@ -417,15 +376,18 @@ export async function renderClientes(container, params) {
           ]),
           el('span', { class: 'text-gray-400' }, '▼')
         ]),
+
         el('div', { class: 'p-4 pt-0 border-t space-y-3' }, [
           cliente.telefono ? el('div', { class: 'flex items-center gap-2' }, [
             el('span', {}, '☎️'),
             el('span', {}, cliente.telefono)
           ]) : null,
+
           el('div', { class: 'text-xs text-gray-500' }, [
             'Creado: ',
             new Date(cliente.created_at).toLocaleDateString('es-AR')
           ]),
+
           // Acciones
           el('div', { class: 'flex gap-2 pt-2 border-t' }, [
             el('button', {
@@ -443,66 +405,29 @@ export async function renderClientes(container, params) {
   }
 
   function renderCardsGrid(items) {
-    return el('div', { class: 'grid grid-cols-1 sm:grid-cols-2 gap-4' }, items.map(cliente =>
-      el('div', { class: 'bg-white p-4 rounded-lg border' }, [
-        el('div', { class: 'mb-3' }, [
-          el('h3', { class: 'text-lg font-bold mb-1' }, getFullName(cliente)),
-          el('p', { class: 'text-sm text-gray-600' }, `📧 ${cliente.email}`),
-          cliente.telefono ? el('p', { class: 'text-sm text-gray-600 mt-1' }, 
-            `☎️ ${cliente.telefono}`
-          ) : null
-        ].filter(Boolean)),
-        el('div', { class: 'flex gap-2 pt-3 border-t' }, [
-          el('button', {
-            class: 'flex-1 bg-white text-primary border border-primary px-3 py-2 rounded font-semibold text-sm',
-            onclick: () => handleEdit(cliente)
-          }, 'Editar'),
-          el('button', {
-            class: 'flex-1 bg-white text-red-600 border border-red-600 px-3 py-2 rounded font-semibold text-sm',
-            onclick: () => handleDelete(cliente.id)
-          }, 'Eliminar')
-        ])
-      ])
-    ));
-  }
+    return el('div', { class: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4' }, 
+      items.map(cliente =>
+        el('div', { class: 'bg-white p-4 rounded-lg border' }, [
+          el('div', { class: 'mb-3' }, [
+            el('h3', { class: 'text-lg font-bold mb-1' }, getFullName(cliente)),
+            el('p', { class: 'text-sm text-gray-600' }, `📧 ${cliente.email}`),
+            cliente.telefono ? el('p', { class: 'text-sm text-gray-600 mt-1' },
+              `☎️ ${cliente.telefono}`
+            ) : null
+          ].filter(Boolean)),
 
-  function renderTable(items) {
-    return el('div', { class: 'overflow-x-auto -mx-4 sm:mx-0' }, [
-      el('div', { class: 'inline-block min-w-full align-middle' }, [
-        el('div', { class: 'overflow-hidden border rounded-lg' }, [
-          el('table', { class: 'min-w-full divide-y divide-gray-200' }, [
-            el('thead', { class: 'bg-gray-50' }, [
-              el('tr', {}, [
-                el('th', { class: 'px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider' }, 'Nombre'),
-                el('th', { class: 'px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider' }, 'Email'),
-                el('th', { class: 'px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider' }, 'Teléfono'),
-                el('th', { class: 'px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider' }, 'Acciones')
-              ])
-            ]),
-            el('tbody', { class: 'bg-white divide-y divide-gray-200' }, items.map(cliente =>
-              el('tr', { class: 'hover:bg-gray-50' }, [
-                el('td', { class: 'px-6 py-4 whitespace-nowrap' }, [
-                  el('div', { class: 'font-semibold text-gray-900' }, getFullName(cliente))
-                ]),
-                el('td', { class: 'px-6 py-4 whitespace-nowrap text-sm text-gray-600' }, cliente.email),
-                el('td', { class: 'px-6 py-4 whitespace-nowrap text-sm text-gray-600' }, cliente.telefono || '-'),
-                el('td', { class: 'px-6 py-4 whitespace-nowrap text-sm' }, [
-                  el('div', { class: 'flex gap-3' }, [
-                    el('button', {
-                      class: 'text-primary font-semibold hover:underline',
-                      onclick: () => handleEdit(cliente)
-                    }, 'Editar'),
-                    el('button', {
-                      class: 'text-red-600 font-semibold hover:underline',
-                      onclick: () => handleDelete(cliente.id)
-                    }, 'Eliminar')
-                  ])
-                ])
-              ])
-            ))
+          el('div', { class: 'flex gap-2 pt-3 border-t' }, [
+            el('button', {
+              class: 'flex-1 bg-white text-primary border border-primary px-3 py-2 rounded font-semibold text-sm',
+              onclick: () => handleEdit(cliente)
+            }, 'Editar'),
+            el('button', {
+              class: 'flex-1 bg-white text-red-600 border border-red-600 px-3 py-2 rounded font-semibold text-sm',
+              onclick: () => handleDelete(cliente.id)
+            }, 'Eliminar')
           ])
         ])
-      ])
-    ]);
+      )
+    );
   }
 }
