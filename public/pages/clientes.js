@@ -275,7 +275,10 @@ export async function renderClientes(container, params) {
       }
     }, [
       el('div', { 
-        class: 'bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto',
+        class: 'bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto absolute',
+        style: {
+          
+        },
         onclick: (e) => e.stopPropagation()
       }, [
         // Header del modal
