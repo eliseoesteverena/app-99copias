@@ -266,7 +266,8 @@ export async function renderClientes(container, params) {
       class: 'fixed inset-0 z-50 flex items-center justify-center p-4',
       style: {
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        backdropFilter: 'blur(4px)'
+        backdropFilter: 'blur(4px)',
+        zIndex: '9999' 
       },
       onclick: (e) => {
         if (e.target === e.currentTarget) {
@@ -276,6 +277,10 @@ export async function renderClientes(container, params) {
     }, [
       el('div', { 
         class: 'bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto',
+        style: {
+          zIndex: '10000',
+          position: 'relative'
+        },
         onclick: (e) => e.stopPropagation()
       }, [
         // Header del modal
