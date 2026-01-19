@@ -267,7 +267,15 @@ export async function renderClientes(container, params) {
       style: {
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         backdropFilter: 'blur(4px)',
-        zIndex: '9999' 
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        right: '0',
+        bottom: '0', 
+        display: 'flex', 
+        alignItems: 'center',    
+        justifyContent: 'center', 
+        zIndex: '9999'
       },
       onclick: (e) => {
         if (e.target === e.currentTarget) {
