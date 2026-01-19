@@ -190,8 +190,8 @@ export async function renderClientes(container, params) {
 
     // Modal (fuera del flujo)
     if (showForm) {
-      mount(container, 'div', {}, [renderModal()]);
-    }
+  container.appendChild(renderModal());
+}
   }
 
   function renderHeader() {
