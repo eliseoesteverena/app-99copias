@@ -263,7 +263,7 @@ export async function renderClientes(container, params) {
 
   function renderModal() {
     return el('div', {
-      class: 'fixed inset-0 z-50 flex items-center justify-center p-4',
+      class: 'fixed inset-0 z-50 flex items-center justify-center p-4 absolute',
       style: {
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         backdropFilter: 'blur(4px)'
@@ -275,7 +275,7 @@ export async function renderClientes(container, params) {
       }
     }, [
       el('div', { 
-        class: 'bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto absolute',
+        class: 'bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto,
         style: {
           
         },
