@@ -7,6 +7,8 @@ export function renderSidebarItem(item, state, isCollapsed) {
   // Verificar si este item está expandido
   const isExpanded = state.state.sidebar.expandedItems.includes(item.id);
   
+  const isMobile = window.innerWidth < 750;
+  
   const container = document.createElement('div');
   container.className = 'sidebar-item-container';
   container.setAttribute('data-item-id', item.id);
