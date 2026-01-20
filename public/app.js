@@ -154,7 +154,7 @@ let router = null;
   window.appRouter = router;
 
   // Exponer templateManager globalmente 
-  window.templateManager = templateManager;
+  window.TemplateManager = templateManager;
 
 /*
   // Escuchar cambios de autenticación
