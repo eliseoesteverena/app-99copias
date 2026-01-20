@@ -12,6 +12,9 @@ export class StateManager {
         isCompact: false,
         scrollY: 0
       },
+      formSidebar: { 
+        isOpen: false
+      },
       user: null
     };
     
@@ -75,6 +78,26 @@ export class StateManager {
     this.state.sidebar.isOpen = !this.state.sidebar.isOpen;
     this.saveSidebarState();
     this.emit('sidebar:toggle', { isOpen: this.state.sidebar.isOpen, isMobile });
+  }
+  // Métodos para FormSidebar
+  openFormSidebar(title, content) {
+    this.state.formSidebar.isOpen = true;
+    
+    this.emit('formSidebar:updateContent', { title, content });
+    this.emit('formSidebar:toggle', { isOpen: true });
+  }
+  
+  closeFormSidebar() {
+    this.state.formSidebar.isOpen = false;
+    this.emit('formSidebar:toggle', { isOpen: false });
+  }
+  
+  toggleFormSidebar() {
+    if (this.state.formSidebar.isOpen) {
+      this.closeFormSidebar();
+    } else {
+      this.openFormSidebar();
+    }
   }
   
   handleResize() {

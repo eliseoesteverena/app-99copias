@@ -12,7 +12,11 @@ export class KeyboardNavigationHandler {
           this.state.toggleSidebar();
         }
       }
-      
+      // Cerrar FormSidebar con Esc
+      if (e.key === 'Escape' && this.stateManager.state.formSidebar.isOpen) {
+        this.stateManager.closeFormSidebar();
+        return;
+      }
       // Ctrl/Cmd + K: abrir búsqueda
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();

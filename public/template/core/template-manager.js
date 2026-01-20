@@ -2,6 +2,7 @@ import { StateManager } from './state-manager.js';
 import { renderTopBar } from '../components/topbar.js';
 import { renderSidebar } from '../components/sidebar.js';
 import { createSearchModal } from '../components/search-modal.js';
+import { renderFormSidebar } from '../components/form-sidebar.js';
 import { el } from '../../mount.js';
 
 export class TemplateManager {
@@ -50,6 +51,10 @@ export class TemplateManager {
   
   // Sidebar
   this.components.sidebar = renderSidebar(this.config.sidebar, this.state);
+  
+   // FormSidebar
+  this.components.formSidebar = renderFormSidebar(this.state);
+  this.root.appendChild(this.components.formSidebar);
   
   // Aplicar clases iniciales según dispositivo
   const isMobile = window.innerWidth < 750;
@@ -227,5 +232,14 @@ export class TemplateManager {
     const oldSidebar = this.components.sidebar;
     this.components.sidebar = renderSidebar(this.config.sidebar, this.state);
     oldSidebar.replaceWith(this.components.sidebar);
+  }
+  
+  // Agregar API pública al final de la clase
+  openFormSidebar(title, content) {
+    this.state.openFormSidebar(title, content);
+  }
+  
+  closeFormSidebar() {
+    this.state.closeFormSidebar();
   }
 }

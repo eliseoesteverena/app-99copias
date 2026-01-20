@@ -643,6 +643,133 @@
   opacity: 1;
 }
 
+/* ============================================
+   FORM SIDEBAR - Adaptado a m-2.core
+   ============================================ */
+
+.form-sidebar-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Overlay */
+.form-sidebar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(17, 24, 39, 0.5); /* Basado en --color-gray-900 */
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.form-sidebar-overlay--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Sidebar */
+.form-sidebar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  pointer-events: auto;
+  /* Sombra personalizada manteniendo suavidad del framework */
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+}
+
+.form-sidebar--open {
+  transform: translateX(0);
+}
+
+/* Header */
+.form-sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-6); /* 1.5rem */
+  border-bottom: 1px solid var(--color-gray-200);
+  background-color: var(--color-white);
+  flex-shrink: 0;
+}
+
+.form-sidebar-title {
+  margin: var(--space-0);
+  font-size: var(--font-xl); /* 1.25rem */
+  font-weight: var(--font-bold); /* 700 */
+  color: var(--color-gray-900);
+}
+
+.form-sidebar-close {
+  background: none;
+  border: none;
+  font-size: var(--font-3xl); /* Ajustado para mejor legibilidad */
+  line-height: 1;
+  color: var(--color-gray-500);
+  cursor: pointer;
+  padding: var(--space-0);
+  width: var(--space-8); /* 2rem */
+  height: var(--space-8); /* 2rem */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.form-sidebar-close:hover {
+  color: var(--color-gray-900);
+}
+
+/* Body */
+.form-sidebar-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-6); /* 1.5rem */
+}
+
+/* Responsive - Desktop (Utilizando breakpoint md del framework) */
+@media (min-width: 768px) {
+  .form-sidebar {
+    width: 50%;
+    max-width: var(--max-w-2xl); /* 42rem / ~672px para consistencia */
+  }
+
+  .form-sidebar-header {
+    position: static;
+  }
+}
+
+/* Responsive - Mobile */
+@media (max-width: 767px) {
+  .form-sidebar {
+    width: 100%;
+  }
+
+  .form-sidebar-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+}
+
+
+
+
 /* === LOADING SPINNER === */
 .loading-spinner {
   width: 40px;
