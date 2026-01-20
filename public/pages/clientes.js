@@ -1,4 +1,3 @@
-// clientes.js
 import { el, mount } from '../mount.js';
 import { supabase } from '../config.js';
 
@@ -8,7 +7,6 @@ export async function renderClientes(container, params) {
   let loading = true;
   let error = null;
   let editingCliente = null;
-  let showForm = false;
   let currentView = 'cards'; // 'cards' o 'details'
 
   // 2. Inicialización
@@ -16,13 +14,12 @@ export async function renderClientes(container, params) {
 
   // 3. Funciones auxiliares
   async function init() {
-    // Si hay ID en params, abrir modal de edición
+    // Si hay ID en params, abrir sidebar de edición
     if (params?.id) {
       await loadClientes();
       const cliente = clientes.find(c => c.id === params.id);
       if (cliente) {
-        editingCliente = cliente;
-        showForm = true;
+        handleEdit(cliente);
       }
     } else {
       await loadClientes();
@@ -94,7 +91,7 @@ export async function renderClientes(container, params) {
         if (err) throw err;
       }
 
-      closeModal();
+      closeSidebar();
       await loadClientes();
     } catch (err) {
       console.error('Error al guardar cliente:', err);
@@ -121,24 +118,104 @@ export async function renderClientes(container, params) {
 
   function handleEdit(cliente) {
     editingCliente = cliente;
-    showForm = true;
-    // Actualizar URL sin recargar
     window.history.pushState({}, '', `#/clientes/${cliente.id}`);
-    render();
+    openFormSidebar();
   }
 
-  function closeModal() {
-    showForm = false;
+  function handleNew() {
     editingCliente = null;
-    // Volver a URL base
+    window.history.pushState({}, '', '#/clientes/nuevo');
+    openFormSidebar();
+  }
+
+  function openFormSidebar() {
+    const title = editingCliente ? 'Editar Cliente' : 'Nuevo Cliente';
+    const content = renderFormulario();
+    window.templateManager.openFormSidebar(title, content);
+  }
+
+  function closeSidebar() {
+    editingCliente = null;
     window.history.pushState({}, '', '#/clientes');
-    render();
+    window.templateManager.closeFormSidebar();
   }
 
   function getFullName(cliente) {
     return cliente.apellido
       ? `${cliente.nombre} ${cliente.apellido}`
       : cliente.nombre;
+  }
+
+  function renderFormulario() {
+    return el('form', {
+      onsubmit: (e) => {
+        e.preventDefault();
+        handleSubmit(new FormData(e.target));
+      }
+    }, [
+      // Nombre y Apellido
+      el('div', { class: 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-4' }, [
+        el('div', {}, [
+          el('label', { class: 'block mb-2 font-semibold' }, 'Nombre *'),
+          el('input', {
+            type: 'text',
+            name: 'nombre',
+            class: 'w-full p-2 border rounded',
+            required: true,
+            value: editingCliente?.nombre || '',
+            autofocus: true
+          })
+        ]),
+
+        el('div', {}, [
+          el('label', { class: 'block mb-2 font-semibold' }, 'Apellido'),
+          el('input', {
+            type: 'text',
+            name: 'apellido',
+            class: 'w-full p-2 border rounded',
+            value: editingCliente?.apellido || ''
+          })
+        ])
+      ]),
+
+      // Email y Teléfono
+      el('div', { class: 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-6' }, [
+        el('div', {}, [
+          el('label', { class: 'block mb-2 font-semibold' }, 'Email *'),
+          el('input', {
+            type: 'email',
+            name: 'email',
+            class: 'w-full p-2 border rounded',
+            required: true,
+            value: editingCliente?.email || ''
+          })
+        ]),
+
+        el('div', {}, [
+          el('label', { class: 'block mb-2 font-semibold' }, 'Teléfono'),
+          el('input', {
+            type: 'tel',
+            name: 'telefono',
+            class: 'w-full p-2 border rounded',
+            value: editingCliente?.telefono || ''
+          })
+        ])
+      ]),
+
+      // Botones
+      el('div', { class: 'flex gap-3 justify-end' }, [
+        el('button', {
+          type: 'button',
+          class: 'px-6 py-2 border rounded bg-white',
+          onclick: closeSidebar
+        }, 'Cancelar'),
+        
+        el('button', {
+          type: 'submit',
+          class: 'bg-primary text-white px-6 py-2 rounded font-semibold'
+        }, editingCliente ? 'Actualizar' : 'Guardar')
+      ])
+    ]);
   }
 
   function render() {
@@ -187,11 +264,6 @@ export async function renderClientes(container, params) {
               : null
           ].filter(Boolean))
     ].filter(Boolean));
-
-    // Modal (fuera del flujo)
-    if (showForm) {
-  container.appendChild(renderModal());
-}
   }
 
   function renderHeader() {
@@ -202,11 +274,7 @@ export async function renderClientes(container, params) {
       el('button', {
         class: 'bg-primary text-white px-4 sm:px-6 py-2 rounded font-semibold',
         style: { width: 'fit-content' },
-        onclick: () => {
-          editingCliente = null;
-          showForm = true;
-          render();
-        }
+        onclick: handleNew
       }, '+ Nuevo Cliente')
     ]);
   }
@@ -253,127 +321,8 @@ export async function renderClientes(container, params) {
       el('button', {
         class: 'bg-primary text-white px-6 py-2 rounded font-semibold',
         style: { width: 'fit-content' },
-        onclick: () => {
-          showForm = true;
-          render();
-        }
+        onclick: handleNew
       }, '+ Crear Primer Cliente')
-    ]);
-  }
-
-  function renderModal() {
-    return el('div', {
-      class: 'fixed inset-0 z-50 flex items-center justify-center p-4',
-      style: {
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        backdropFilter: 'blur(4px)',
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        right: '0',
-        bottom: '0', 
-        display: 'flex', 
-        alignItems: 'center',    
-        justifyContent: 'center', 
-        zIndex: '9999'
-      },
-      onclick: (e) => {
-        if (e.target === e.currentTarget) {
-          closeModal();
-        }
-      }
-    }, [
-      el('div', { 
-        class: 'bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto',
-        style: {
-          zIndex: '10000',
-          position: 'relative'
-        },
-        onclick: (e) => e.stopPropagation()
-      }, [
-        // Header del modal
-        el('div', { class: 'flex justify-between items-center p-6 border-b' }, [
-          el('h2', { class: 'text-xl font-bold' },
-            editingCliente ? 'Editar Cliente' : 'Nuevo Cliente'
-          ),
-          el('button', {
-            class: 'text-2xl text-gray-500 hover:text-gray-700',
-            onclick: closeModal
-          }, '×')
-        ]),
-
-        // Formulario
-        el('form', {
-          class: 'p-6',
-          onsubmit: (e) => {
-            e.preventDefault();
-            handleSubmit(new FormData(e.target));
-          }
-        }, [
-          el('div', { class: 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-4' }, [
-            // Nombre
-            el('div', {}, [
-              el('label', { class: 'block mb-2 font-semibold' }, 'Nombre *'),
-              el('input', {
-                type: 'text',
-                name: 'nombre',
-                class: 'w-full p-2 border rounded',
-                required: true,
-                value: editingCliente?.nombre || ''
-              })
-            ]),
-
-            // Apellido
-            el('div', {}, [
-              el('label', { class: 'block mb-2 font-semibold' }, 'Apellido'),
-              el('input', {
-                type: 'text',
-                name: 'apellido',
-                class: 'w-full p-2 border rounded',
-                value: editingCliente?.apellido || ''
-              })
-            ])
-          ]),
-
-          el('div', { class: 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-6' }, [
-            // Email
-            el('div', {}, [
-              el('label', { class: 'block mb-2 font-semibold' }, 'Email *'),
-              el('input', {
-                type: 'email',
-                name: 'email',
-                class: 'w-full p-2 border rounded',
-                required: true,
-                value: editingCliente?.email || ''
-              })
-            ]),
-
-            // Teléfono
-            el('div', {}, [
-              el('label', { class: 'block mb-2 font-semibold' }, 'Teléfono'),
-              el('input', {
-                type: 'tel',
-                name: 'telefono',
-                class: 'w-full p-2 border rounded',
-                value: editingCliente?.telefono || ''
-              })
-            ])
-          ]),
-
-          // Botones
-          el('div', { class: 'flex gap-3 justify-end' }, [
-            el('button', {
-              type: 'button',
-              class: 'px-6 py-2 border rounded bg-white',
-              onclick: closeModal
-            }, 'Cancelar'),
-            el('button', {
-              type: 'submit',
-              class: 'bg-primary text-white px-6 py-2 rounded font-semibold'
-            }, editingCliente ? 'Actualizar' : 'Guardar')
-          ])
-        ])
-      ])
     ]);
   }
 
