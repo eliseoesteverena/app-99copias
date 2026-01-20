@@ -47,6 +47,12 @@ export function renderSidebarItem(item, state, isCollapsed) {
     itemElement.addEventListener('mouseleave', hideTooltip);
   }
   
+  // Tooltip en mobil
+  if (isMobile && item.tooltip) {
+    itemElement.addEventListener('mouseenter', (e) => hideTooltip(e, item.tooltip));
+    itemElement.addEventListener('mouseleave', hideTooltip);
+  }
+  
   container.appendChild(itemElement);
   
   // Sub-items (inicialmente ocultos, se muestran al expandir)
