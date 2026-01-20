@@ -31,6 +31,8 @@ export class TemplateManager {
     
     // Pre-crear modal de búsqueda (no se muestra hasta que se llame)
     createSearchModal();
+    
+    window.templateManager = this;
   }
   
   updateConfigWithUserData() {
@@ -234,12 +236,5 @@ export class TemplateManager {
     oldSidebar.replaceWith(this.components.sidebar);
   }
   
-  // Agregar API pública al final de la clase
-  openFormSidebar(title, content) {
-    this.state.openFormSidebar(title, content);
-  }
-  
-  closeFormSidebar() {
-    this.state.closeFormSidebar();
-  }
+
 }
