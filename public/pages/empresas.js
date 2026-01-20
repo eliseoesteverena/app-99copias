@@ -330,20 +330,33 @@ export async function renderEmpresas(container, params) {
     }
 
     function renderModal() {
-        return el('div', {
-            class: 'fixed inset-0 z-50 flex items-center justify-center p-4',
-            style: {
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                backdropFilter: 'blur(4px)'
-            },
-            onclick: (e) => {
-                if (e.target === e.currentTarget) {
-                    closeModal();
+    return el('div', {
+                class: 'fixed inset-0 z-50 flex items-center justify-center p-4',
+                style: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    backdropFilter: 'blur(4px)',
+                    position: 'fixed',
+                    top: '0',
+                    left: '0',
+                    right: '0',
+                    bottom: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: '9999'
+                },
+                onclick: (e) => {
+                    if (e.target === e.currentTarget) {
+                        closeModal();
+                    }
                 }
-            }
-        }, [
-            el('div', {
-                class: 'bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto',
+            }, [
+                el('div', {
+                    class: 'bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto',
+                        style: {
+                            zIndex: '10000',
+                            position: 'relative'
+                        },
                 onclick: (e) => e.stopPropagation()
             }, [
                 el('div', {
