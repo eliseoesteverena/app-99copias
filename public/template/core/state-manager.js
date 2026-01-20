@@ -192,4 +192,24 @@ export class StateManager {
       isMobile: window.innerWidth < 750
     };
   }
+  
+      openFormSidebar(title, content) {
+      this.state.formSidebar.isOpen = true;
+      this.emit('formSidebar:updateContent', { title, content });
+      this.emit('formSidebar:toggle', { isOpen: true });
+    }
+    
+    closeFormSidebar() {
+      this.state.formSidebar.isOpen = false;
+      this.emit('formSidebar:toggle', { isOpen: false });
+    }
+    
+    toggleFormSidebar() {
+      if (this.state.formSidebar.isOpen) {
+        this.closeFormSidebar();
+      } else {
+        this.openFormSidebar();
+      }
+    }
+  
 }
