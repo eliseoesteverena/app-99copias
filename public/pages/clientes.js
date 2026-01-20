@@ -131,7 +131,7 @@ export async function renderClientes(container, params) {
   function openFormSidebar() {
     const title = editingCliente ? 'Editar Cliente' : 'Nuevo Cliente';
     const content = renderFormulario();
-    window.templateManager.openFormSidebar(title, content);
+    window.TemplateManager.openFormSidebar(title, content);
   }
 
   function closeSidebar() {
