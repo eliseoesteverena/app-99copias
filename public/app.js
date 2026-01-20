@@ -153,6 +153,9 @@ let router = null;
   // Exponer router globalmente
   window.appRouter = router;
 
+  // Exponer templateManager globalmente 
+  window.templateManager = templateManager;
+
 /*
   // Escuchar cambios de autenticación
   supabase.auth.onAuthStateChange((event, session) => {
