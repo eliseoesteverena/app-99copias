@@ -128,12 +128,16 @@ export async function renderClientes(container, params) {
     openFormSidebar();
   }
 
-  function openFormSidebar() {
-    const title = editingCliente ? 'Editar Cliente' : 'Nuevo Cliente';
-    const content = renderFormulario();
-    window.templateManager.openFormSidebar(title, content);
-  }
-
+ function openFormSidebar() {
+  const title = editingCliente ? 'Editar Cliente' : 'Nuevo Cliente';
+  const content = renderFormulario(); // ⬅️ Asegúrate que tenga paréntesis ()
+  
+  console.log('Title:', title);
+  console.log('Content:', content); // ⬅️ AGREGA ESTO para debug
+  console.log('Type:', typeof content); // ⬅️ AGREGA ESTO
+  
+  window.templateManager.openFormSidebar(title, content);
+}
   function closeSidebar() {
     editingCliente = null;
     window.history.pushState({}, '', '#/clientes');
