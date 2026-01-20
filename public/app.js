@@ -69,31 +69,7 @@ const routes = [
   requiresAuth: true,
   permissions: ['admin']
 }
-  /*
-  {
-    path: '/ventas',
-    component: renderVentas,
-    title: 'Ventas',
-    requiresAuth: true
-  },
-  {
-    path: '/trabajos',
-    component: renderTrabajos,
-    title: 'Trabajos',
-    requiresAuth: true
-  },
-  {
-    path: '/clientes',
-    component: renderClientes,
-    title: 'Clientes',
-    requiresAuth: true
-  },
-  {
-    path: '/reportes',
-    component: renderReportes,
-    title: 'Reportes',
-    requiresAuth: true
-  }*/
+
 ];
 
 // Variables globales
@@ -177,6 +153,7 @@ let router = null;
   // Exponer router globalmente
   window.appRouter = router;
 
+/*
   // Escuchar cambios de autenticación
   supabase.auth.onAuthStateChange((event, session) => {
     console.log('🔄 Auth state changed:', event);
@@ -190,6 +167,25 @@ let router = null;
       window.location.reload();
     }
   });
+*/
+
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log('🔄 Auth state changed:', event);
+  
+  // Solo recargar en eventos de login/logout reales
+  if (event === 'SIGNED_IN' && !template) {
+    // Solo si no hay template inicializado (login real)
+    console.log('✅ Usuario autenticado, recargando...');
+    window.location.reload();
+  } else if (event === 'SIGNED_OUT') {
+    console.log('🚪 Usuario cerró sesión, redirigiendo...');
+    window.location.hash = '/login';
+    window.location.reload();
+  } else if (event === 'TOKEN_REFRESHED') {
+    // Ignorar refrescos de token
+    console.log('🔄 Token refrescado');
+  }
+});
 
   console.log('✅ Aplicación inicializada');
 })();
