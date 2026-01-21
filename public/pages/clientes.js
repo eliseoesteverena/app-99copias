@@ -211,7 +211,7 @@ function closeSidebar() {
       el('div', { class: 'flex gap-3 justify-end' }, [
         el('button', {
           type: 'button',
-          class: 'px-6 py-2 border rounded bg-white',
+          class: 'px-6 py-2 border rounded bg-white text-primary',
           onclick: closeSidebar
         }, 'Cancelar'),
         
