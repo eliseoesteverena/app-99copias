@@ -147,7 +147,7 @@ export async function renderClientes(container, params) {
 // ✅ CAMBIAR closeSidebar():
 function closeSidebar() {
   editingCliente = null;
-  window.history.pushState({}, '', '#/clientes');
+  window.location.hash = '#/clientes';
   document.dispatchEvent(new CustomEvent('formSidebar:close'));
 }
   function getFullName(cliente) {
