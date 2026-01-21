@@ -3,7 +3,12 @@ import { supabase } from '../config.js';
 
 export async function renderClientes(container, params) {
 
-  
+  document.addEventListener('formSidebar:closed', () => {
+  if (editingCliente) {
+    editingCliente = null;
+    window.history.pushState({}, '', '#/clientes');
+  }
+});
   // 1. Estado local
   let clientes = [];
   let loading = true;
