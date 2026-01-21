@@ -1,56 +1,89 @@
 import { el } from '../../mount.js';
 
-export function renderFormSidebar(stateManager) {
+export function renderFormSidebar() {
   let contentContainer = null;
   let titleElement = null;
-
-  // 1. Overlay usando selector CSS directo
-  const overlay = el('div.form-sidebar-overlay', {
-    onclick: () => stateManager.closeFormSidebar()
+  let isOpen = false;
+  
+  // Función para cerrar el sidebar
+  function closeSidebar() {
+    overlay.classList.remove('form-sidebar-overlay--visible');
+    sidebar.classList.remove('form-sidebar--open');
+    document.body.style.overflow = '';
+    isOpen = false;
+  }
+  
+  // Overlay
+  const overlay = el('div', {
+    class: 'form-sidebar-overlay',
+    onclick: closeSidebar
   });
-
-  // 2. Estructura del Sidebar con anidamiento declarativo
-  const sidebar = el('div.form-sidebar', {}, [
-    // Header con clases en el selector
-    el('div.form-sidebar-header', {}, [
-      titleElement = el('h2.form-sidebar-title', {}, 'Título'),
+  
+  // Sidebar container
+  const sidebar = el('div', {
+    class: 'form-sidebar'
+  }, [
+    // Header
+    el('div', {
+      class: 'form-sidebar-header'
+    }, [
+      titleElement = el('h2', {
+        class: 'form-sidebar-title'
+      }, 'Título'),
       
-      el('button.form-sidebar-close', {
+      el('button', {
+        class: 'form-sidebar-close',
         type: 'button',
         'aria-label': 'Cerrar',
-        onclick: () => stateManager.closeFormSidebar()
+        onclick: closeSidebar
       }, '×')
     ]),
-
+    
     // Body (contenido dinámico)
-    contentContainer = el('div.form-sidebar-body')
+    contentContainer = el('div', {
+      class: 'form-sidebar-body'
+    })
   ]);
-
-  // --- Lógica de estados (se mantiene igual para evitar conflictos) ---
-
-  stateManager.on('formSidebar:updateContent', ({ title, content }) => {
+  
+  // ⬇️ ESCUCHAR EVENTO DE APERTURA
+  document.addEventListener('formSidebar:open', (e) => {
+    const { title, content } = e.detail;
+    
+    // Actualizar título
     if (titleElement && title) {
       titleElement.textContent = title;
     }
     
+    // Actualizar contenido
     if (contentContainer && content) {
-      contentContainer.innerHTML = ''; // Limpieza estándar recomendada en los ejemplos
+      contentContainer.innerHTML = '';
       contentContainer.appendChild(content);
     }
+    
+    // Abrir sidebar
+    overlay.classList.add('form-sidebar-overlay--visible');
+    sidebar.classList.add('form-sidebar--open');
+    document.body.style.overflow = 'hidden';
+    isOpen = true;
   });
-
-  stateManager.on('formSidebar:toggle', ({ isOpen }) => {
-    if (isOpen) {
-      overlay.classList.add('form-sidebar-overlay--visible');
-      sidebar.classList.add('form-sidebar--open');
-      document.body.style.overflow = 'hidden';
-    } else {
-      overlay.classList.remove('form-sidebar-overlay--visible');
-      sidebar.classList.remove('form-sidebar--open');
-      document.body.style.overflow = '';
+  
+  // ⬇️ ESCUCHAR EVENTO DE CIERRE
+  document.addEventListener('formSidebar:close', () => {
+    closeSidebar();
+  });
+  
+  // ⬇️ ESCUCHAR TECLA ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isOpen) {
+      closeSidebar();
+      document.dispatchEvent(new CustomEvent('formSidebar:closed'));
     }
   });
-
-  // 3. Container final unificando las piezas
-  return el('div.form-sidebar-container', {}, [overlay, sidebar]);
+  
+  // Container que agrupa overlay + sidebar
+  const container = el('div', {
+    class: 'form-sidebar-container'
+  }, [overlay, sidebar]);
+  
+  return container;
 }

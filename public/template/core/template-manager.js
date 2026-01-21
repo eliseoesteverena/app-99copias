@@ -55,7 +55,7 @@ export class TemplateManager {
   this.components.sidebar = renderSidebar(this.config.sidebar, this.state);
   
    // FormSidebar
-  this.components.formSidebar = renderFormSidebar(this.state);
+  this.components.formSidebar = renderFormSidebar();
   this.root.appendChild(this.components.formSidebar);
   
   // Aplicar clases iniciales según dispositivo

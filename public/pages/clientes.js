@@ -2,8 +2,6 @@ import { el, mount } from '../mount.js';
 import { supabase } from '../config.js';
 
 export async function renderClientes(container, params) {
-  
-  const templateManager = window.templateManager;
 
   
   // 1. Estado local
@@ -133,19 +131,20 @@ export async function renderClientes(container, params) {
   }
 
  function openFormSidebar() {
-    const title = editingCliente ? 'Editar Cliente' : 'Nuevo Cliente';
-    const content = renderFormulario();
-    openFormSidebar();
-    // templateManager.openFormSidebar(title, content); // ⬅️ Sin window
-  }
+  const title = editingCliente ? 'Editar Cliente' : 'Nuevo Cliente';
+  const content = renderFormulario();
   
-  function closeSidebar() {
-    editingCliente = null;
-    window.history.pushState({}, '', '#/clientes');
-    templateManager.closeFormSidebar(); // ⬅️ Sin window
-  }
-  
+  document.dispatchEvent(new CustomEvent('formSidebar:open', {
+    detail: { title, content }
+  }));
+}
 
+// ✅ CAMBIAR closeSidebar():
+function closeSidebar() {
+  editingCliente = null;
+  window.history.pushState({}, '', '#/clientes');
+  document.dispatchEvent(new CustomEvent('formSidebar:close'));
+}
   function getFullName(cliente) {
     return cliente.apellido
       ? `${cliente.nombre} ${cliente.apellido}`
