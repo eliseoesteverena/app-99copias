@@ -1,32 +1,29 @@
-import { supabase } from '../../config.js';
+import { supabase } from './config.js';
 
 export const searchConfig = {
   // Configuración de categorías
   categories: [
     {
-      id: 'trabajos',
-      label: 'Trabajos',
-      icon: '🔧',
-      color: '#3b82f6',
-      table: 'trabajos',
-      searchFields: ['detalles'],
-      selectFields: `
-        id,
-        detalles,
-        presupuesto,
-        estado,
-        prioridad,
-        fecha_entrega,
-        cliente:clientes(nombre, apellido),
-        empresa:empresas(nombre)
-      `,
-      displayTemplate: (item) => ({
-        primary: item.detalles?.substring(0, 60) + '...' || 'Sin detalles',
-        secondary: `${item.estado} - ${item.prioridad}`,
-        tertiary: item.cliente ? `${item.cliente.nombre} ${item.cliente.apellido || ''}` : 'Sin cliente'
-      }),
-      route: (item) => `/trabajos/${item.id}`
-    },
+  id: 'trabajos',
+  label: 'Trabajos',
+  icon: '🔧',
+  color: '#3b82f6',
+  table: 'trabajos',
+  // Agregamos los campos relacionales usando la sintaxis de punto
+  searchFields: [
+    'detalles',
+    'clientes.nombre',
+    'clientes.apellido',
+    'empresas.nombre'
+  ],
+  selectFields: `id,detalles,presupuesto,estado,prioridad,fecha_entrega,cliente:clientes(nombre, apellido),empresa:empresas(nombre)`,
+  displayTemplate: (item) => ({
+    primary: item.detalles?.substring(0, 60) + '...' || 'Sin detalles',
+    secondary: `${item.estado} - ${item.prioridad}`,
+    tertiary: item.cliente ? `${item.cliente.nombre} ${item.cliente.apellido || ''}` : 'Sin cliente'
+  }),
+  route: (item) => `/trabajos/${item.id}`
+},
     {
       id: 'clientes',
       label: 'Clientes',
