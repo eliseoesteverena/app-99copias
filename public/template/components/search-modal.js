@@ -5,6 +5,7 @@ let searchModal = null;
 let searchDebounceTimer = null;
 let currentResults = {};
 let expandedCategories = new Set();
+let currentQuery = '';
 
 export function createSearchModal() {
   if (searchModal) {
@@ -33,7 +34,7 @@ export function createSearchModal() {
         type: 'text',
         id: 'search-modal-input',
         class: 'search-modal-input',
-        placeholder: 'Buscar en todo...',
+        placeholder: 'Buscar trabajos, clientes, empresas...',
         autocomplete: 'off',
         oninput: handleSearchInput
       }),
@@ -101,6 +102,7 @@ export function closeSearchModal() {
     
     currentResults = {};
     expandedCategories.clear();
+    currentQuery = '';
     
     document.removeEventListener('keydown', handleKeyDown);
   }, 200);
@@ -108,6 +110,7 @@ export function closeSearchModal() {
 
 function handleSearchInput(e) {
   const query = e.target.value.trim();
+  currentQuery = query;
   
   // Limpiar timer anterior
   if (searchDebounceTimer) {
@@ -139,9 +142,13 @@ async function performSearch(query) {
   );
   
   try {
-    // Buscar (simular delay de API)
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Buscar en Supabase
     const results = await searchData(query);
+    
+    // Verificar que la búsqueda sigue siendo válida
+    if (currentQuery !== query) {
+      return; // El usuario siguió escribiendo
+    }
     
     currentResults = results;
     renderResults(results);
@@ -184,7 +191,10 @@ function renderCategorySection(categoryId, categoryResults) {
     // Header
     el('div', { class: 'search-category-header' }, [
       el('div', { class: 'search-category-title' }, [
-        el('span', { class: 'search-category-icon' }, category.icon),
+        el('span', {
+          class: 'search-category-icon',
+          style: { color: category.color }
+        }, category.icon),
         el('span', { class: 'search-category-label' }, category.label),
         el('span', { class: 'search-category-count' }, `(${total})`)
       ]),
@@ -224,7 +234,9 @@ function renderResultItem(item, category) {
     el('div', { class: 'search-result-primary' }, display.primary),
     el('div', { class: 'search-result-secondary' }, [
       el('span', {}, display.secondary),
-      display.tertiary ? el('span', { class: 'search-result-tertiary' }, display.tertiary) : null
+      display.tertiary ? el('span', {
+        class: 'search-result-tertiary'
+      }, display.tertiary) : null
     ].filter(Boolean))
   ]);
 }
@@ -259,7 +271,8 @@ function renderErrorState() {
   resultsContainer.innerHTML = '';
   resultsContainer.appendChild(
     el('div', { class: 'search-modal-empty' }, [
-      el('p', { class: 'text-red-600' }, 'Error al realizar la búsqueda')
+      el('p', { class: 'text-red-600' }, '⚠️ Error al realizar la búsqueda'),
+      el('p', { class: 'text-gray-500 text-sm mt-2' }, 'Por favor, intenta nuevamente')
     ])
   );
 }
@@ -268,6 +281,12 @@ function handleKeyDown(e) {
   // Cerrar con Esc
   if (e.key === 'Escape') {
     closeSearchModal();
+  }
+  
+  // Navegación con flechas (opcional, para futuras mejoras)
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    // TODO: Implementar navegación por teclado entre resultados
+    e.preventDefault();
   }
 }
 
