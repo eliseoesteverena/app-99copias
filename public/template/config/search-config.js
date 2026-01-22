@@ -85,7 +85,7 @@ export async function searchData(query, categoryId = null) {
   const results = {};
   const categoriesToSearch = categoryId
     ? searchConfig.categories.filter(c => c.id === categoryId)
-    [span_5](start_span): searchConfig.categories;[span_5](end_span)
+     :searchConfig.categories;
 
   const searchPromises = categoriesToSearch.map(async (category) => {
     try {
@@ -98,13 +98,13 @@ export async function searchData(query, categoryId = null) {
           const [relation, column] = field.split('.');
           return `${relation}(${column}).ilike.%${query}%`;
         }
-        [span_6](start_span)// Si es un campo normal de la tabla base[span_6](end_span)
+        // Si es un campo normal de la tabla 
         return `${field}.ilike.%${query}%`;
       }).join(',');
 
       queryBuilder = queryBuilder.or(searchConditions);
 
-      const { data, error } = await queryBuilder.limit(20);[span_7](end_span)
+      const { data, error } = await queryBuilder.limit(20);
 
       if (error) {
         console.error(`Error buscando en ${category.id}:`, error);
@@ -128,7 +128,7 @@ export async function searchData(query, categoryId = null) {
     }
   });
 
-  const searchResults = await Promise.all(searchPromises);[span_8](end_span)
+  const searchResults = await Promise.all(searchPromises);
   searchResults.forEach(result => {
     if (result) {
       results[result.categoryId] = result;
