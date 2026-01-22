@@ -1,29 +1,41 @@
+
 import { supabase } from './config.js';
 
 export const searchConfig = {
-  // Configuración de categorías
   categories: [
     {
-  id: 'trabajos',
-  label: 'Trabajos',
-  icon: '🔧',
-  color: '#3b82f6',
-  table: 'trabajos',
-  // Agregamos los campos relacionales usando la sintaxis de punto
-  searchFields: [
-    'detalles',
-    'clientes.nombre',
-    'clientes.apellido',
-    'empresas.nombre'
-  ],
-  selectFields: `id,detalles,presupuesto,estado,prioridad,fecha_entrega,cliente:clientes(nombre, apellido),empresa:empresas(nombre)`,
-  displayTemplate: (item) => ({
-    primary: item.detalles?.substring(0, 60) + '...' || 'Sin detalles',
-    secondary: `${item.estado} - ${item.prioridad}`,
-    tertiary: item.cliente ? `${item.cliente.nombre} ${item.cliente.apellido || ''}` : 'Sin cliente'
-  }),
-  route: (item) => `/trabajos/${item.id}`
-},
+      id: 'trabajos',
+      label: 'Trabajos',
+      icon: '🔧',
+      color: '#3b82f6',
+      table: 'trabajos',
+      searchFields: [
+        'detalles',
+        'clientes.nombre',
+        'clientes.apellido',
+        'empresas.nombre'
+      ],
+      selectFields: `
+        id,
+        detalles,
+        presupuesto,
+        estado,
+        prioridad,
+        fecha_entrega,
+        cliente:clientes(nombre, apellido),
+        empresa:empresas(nombre)
+      `,
+      displayTemplate: (item) => ({
+        primary: item.detalles
+          ? item.detalles.substring(0, 60) + '...'
+          : 'Sin detalles',
+        secondary: `${item.estado} - ${item.prioridad}`,
+        tertiary: item.cliente
+          ? `${item.cliente.nombre} ${item.cliente.apellido || ''}`
+          : 'Sin cliente'
+      }),
+      route: (item) => `/trabajos/${item.id}`
+    },
     {
       id: 'clientes',
       label: 'Clientes',
@@ -71,12 +83,16 @@ export const searchConfig = {
   minSearchLength: 2
 };
 
-/**
- * Función de búsqueda en Supabase
- * @param {string} query - Término de búsqueda
- * @param {string|null} categoryId - ID de categoría específica (opcional)
- * @returns {Promise<Object>} Resultados agrupados por categoría
- */
+function buildSearchConditions(searchFields, query) {
+  return searchFields.map(field => {
+    if (field.includes('.')) {
+      const [relation, column] = field.split('.');
+      return `${relation}(${column}).ilike.%${query}%`;
+    }
+    return `${field}.ilike.%${query}%`;
+  }).join(',');
+}
+
 export async function searchData(query, categoryId = null) {
   if (!query || query.length < searchConfig.minSearchLength) {
     return {};
@@ -85,22 +101,18 @@ export async function searchData(query, categoryId = null) {
   const results = {};
   const categoriesToSearch = categoryId
     ? searchConfig.categories.filter(c => c.id === categoryId)
-     :searchConfig.categories;
+    : searchConfig.categories;
 
   const searchPromises = categoriesToSearch.map(async (category) => {
     try {
-      let queryBuilder = supabase.from(category.table).select(category.selectFields);
+      let queryBuilder = supabase
+        .from(category.table)
+        .select(category.selectFields);
 
-      // Transformamos los campos para soportar relaciones en el OR
-      const searchConditions = category.searchFields.map(field => {
-        if (field.includes('.')) {
-          // Si el campo es 'clientes.nombre', lo convierte en 'clientes(nombre).ilike.%query%'
-          const [relation, column] = field.split('.');
-          return `${relation}(${column}).ilike.%${query}%`;
-        }
-        // Si es un campo normal de la tabla 
-        return `${field}.ilike.%${query}%`;
-      }).join(',');
+      const searchConditions = buildSearchConditions(
+        category.searchFields,
+        query
+      );
 
       queryBuilder = queryBuilder.or(searchConditions);
 
@@ -114,13 +126,14 @@ export async function searchData(query, categoryId = null) {
       if (data && data.length > 0) {
         return {
           categoryId: category.id,
-          category: category,
+          category,
           items: data,
           total: data.length,
           displayed: data.slice(0, searchConfig.maxResultsPerCategory),
           hasMore: data.length > searchConfig.maxResultsPerCategory
         };
       }
+
       return null;
     } catch (error) {
       console.error(`Error en búsqueda de ${category.id}:`, error);
@@ -129,25 +142,19 @@ export async function searchData(query, categoryId = null) {
   });
 
   const searchResults = await Promise.all(searchPromises);
+
   searchResults.forEach(result => {
     if (result) {
       results[result.categoryId] = result;
     }
   });
+
   return results;
 }
 
-/**
- * Búsqueda en una categoría específica con filtros adicionales
- * @param {string} categoryId - ID de la categoría
- * @param {string} query - Término de búsqueda
- * @param {Object} filters - Filtros adicionales
- * @param {number} limit - Límite de resultados
- * @returns {Promise<Array>} Lista de resultados
- */
 export async function searchInCategory(categoryId, query, filters = {}, limit = 50) {
   const category = searchConfig.categories.find(c => c.id === categoryId);
-  
+
   if (!category) {
     console.error(`Categoría ${categoryId} no encontrada`);
     return [];
@@ -158,15 +165,14 @@ export async function searchInCategory(categoryId, query, filters = {}, limit = 
       .from(category.table)
       .select(category.selectFields);
 
-    // Búsqueda por texto si hay query
     if (query && query.length >= searchConfig.minSearchLength) {
-      const searchConditions = category.searchFields.map(field => 
-        `${field}.ilike.%${query}%`
-      ).join(',');
+      const searchConditions = buildSearchConditions(
+        category.searchFields,
+        query
+      );
       queryBuilder = queryBuilder.or(searchConditions);
     }
 
-    // Aplicar filtros adicionales
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== null && value !== undefined) {
         if (Array.isArray(value)) {
@@ -177,7 +183,6 @@ export async function searchInCategory(categoryId, query, filters = {}, limit = 
       }
     });
 
-    // Ejecutar query
     const { data, error } = await queryBuilder.limit(limit);
 
     if (error) {
@@ -192,15 +197,9 @@ export async function searchInCategory(categoryId, query, filters = {}, limit = 
   }
 }
 
-/**
- * Obtener detalles de un item específico
- * @param {string} categoryId - ID de la categoría
- * @param {string} itemId - ID del item
- * @returns {Promise<Object|null>} Item encontrado o null
- */
 export async function getItemDetails(categoryId, itemId) {
   const category = searchConfig.categories.find(c => c.id === categoryId);
-  
+
   if (!category) {
     console.error(`Categoría ${categoryId} no encontrada`);
     return null;
@@ -225,15 +224,9 @@ export async function getItemDetails(categoryId, itemId) {
   }
 }
 
-/**
- * Búsqueda reciente (últimos registros creados)
- * @param {string} categoryId - ID de la categoría
- * @param {number} limit - Límite de resultados
- * @returns {Promise<Array>} Lista de registros recientes
- */
 export async function getRecentItems(categoryId, limit = 5) {
   const category = searchConfig.categories.find(c => c.id === categoryId);
-  
+
   if (!category) {
     console.error(`Categoría ${categoryId} no encontrada`);
     return [];
@@ -258,11 +251,6 @@ export async function getRecentItems(categoryId, limit = 5) {
   }
 }
 
-/**
- * Estadísticas de búsqueda (útil para analytics)
- * @param {string} query - Término de búsqueda
- * @returns {Promise<Object>} Contadores por categoría
- */
 export async function getSearchStats(query) {
   if (!query || query.length < searchConfig.minSearchLength) {
     return {};
@@ -272,9 +260,10 @@ export async function getSearchStats(query) {
 
   const statsPromises = searchConfig.categories.map(async (category) => {
     try {
-      const searchConditions = category.searchFields.map(field => 
-        `${field}.ilike.%${query}%`
-      ).join(',');
+      const searchConditions = buildSearchConditions(
+        category.searchFields,
+        query
+      );
 
       const { count, error } = await supabase
         .from(category.table)
@@ -287,11 +276,12 @@ export async function getSearchStats(query) {
     } catch (error) {
       console.error(`Error en stats de ${category.id}:`, error);
     }
+
     return { categoryId: category.id, count: 0 };
   });
 
   const results = await Promise.all(statsPromises);
-  
+
   results.forEach(result => {
     stats[result.categoryId] = result.count;
   });
