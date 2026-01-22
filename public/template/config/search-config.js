@@ -78,44 +78,39 @@ export const searchConfig = {
  * @returns {Promise<Object>} Resultados agrupados por categoría
  */
 export async function searchData(query, categoryId = null) {
-  // Validación
   if (!query || query.length < searchConfig.minSearchLength) {
     return {};
   }
 
-  const lowerQuery = query.toLowerCase();
   const results = {};
-
-  // Filtrar categorías si se especifica una
   const categoriesToSearch = categoryId
     ? searchConfig.categories.filter(c => c.id === categoryId)
-    : searchConfig.categories;
+    [span_5](start_span): searchConfig.categories;[span_5](end_span)
 
-  // Ejecutar búsquedas en paralelo
   const searchPromises = categoriesToSearch.map(async (category) => {
     try {
-      // Construir query base
-      let queryBuilder = supabase
-        .from(category.table)
-        .select(category.selectFields);
+      let queryBuilder = supabase.from(category.table).select(category.selectFields);
 
-      // Aplicar filtros de búsqueda con OR
-      const searchConditions = category.searchFields.map(field => 
-        `${field}.ilike.%${query}%`
-      ).join(',');
+      // Transformamos los campos para soportar relaciones en el OR
+      const searchConditions = category.searchFields.map(field => {
+        if (field.includes('.')) {
+          // Si el campo es 'clientes.nombre', lo convierte en 'clientes(nombre).ilike.%query%'
+          const [relation, column] = field.split('.');
+          return `${relation}(${column}).ilike.%${query}%`;
+        }
+        [span_6](start_span)// Si es un campo normal de la tabla base[span_6](end_span)
+        return `${field}.ilike.%${query}%`;
+      }).join(',');
 
       queryBuilder = queryBuilder.or(searchConditions);
 
-      // Ejecutar query
-      const { data, error, count } = await queryBuilder
-        .limit(20); // Límite más alto para después filtrar
+      const { data, error } = await queryBuilder.limit(20);[span_7](end_span)
 
       if (error) {
         console.error(`Error buscando en ${category.id}:`, error);
         return null;
       }
 
-      // Filtrar y limitar resultados
       if (data && data.length > 0) {
         return {
           categoryId: category.id,
@@ -126,7 +121,6 @@ export async function searchData(query, categoryId = null) {
           hasMore: data.length > searchConfig.maxResultsPerCategory
         };
       }
-
       return null;
     } catch (error) {
       console.error(`Error en búsqueda de ${category.id}:`, error);
@@ -134,16 +128,12 @@ export async function searchData(query, categoryId = null) {
     }
   });
 
-  // Esperar todas las búsquedas
-  const searchResults = await Promise.all(searchPromises);
-
-  // Construir objeto de resultados
+  const searchResults = await Promise.all(searchPromises);[span_8](end_span)
   searchResults.forEach(result => {
     if (result) {
       results[result.categoryId] = result;
     }
   });
-
   return results;
 }
 
