@@ -18,6 +18,8 @@ let selectedCliente = null;
 let selectedEmpresa = null;
 let showClienteModal = false;
 let currentClienteModalTab = 'personal';
+let tempClienteData = {};
+let tempEmpresaData = {};
 const ESTADOS = ['Presupuesto', 'Aprobado', 'En Curso', 'Pausado', 'Completado', 'Cancelado', 'Archivado'];
 const PRIORIDADES = ['Baja', 'Media', 'Alta', 'Urgente'];
 await init();
@@ -153,6 +155,8 @@ clienteSearchTerm = '';
 showClienteResults = false;
 showClienteModal = false;
 currentClienteModalTab = 'personal';
+tempClienteData = {};
+tempEmpresaData = {};
 window.location.hash = '#/trabajos';
 document.dispatchEvent(new CustomEvent('formSidebar:close'));
 }
@@ -278,17 +282,44 @@ function openClienteModal() {
 showClienteModal = true;
 showClienteResults = false;
 currentClienteModalTab = 'personal';
+tempClienteData = {};
+tempEmpresaData = {};
 updateFormContent();
 }
 function closeClienteModal() {
 showClienteModal = false;
+tempClienteData = {};
+tempEmpresaData = {};
 updateFormContent();
 }
 function openEditClienteModal() {
 if (!selectedCliente) return;
 showClienteModal = true;
 currentClienteModalTab = 'personal';
+tempClienteData = {};
+tempEmpresaData = {};
 updateFormContent();
+}
+function saveCurrentTabData() {
+const form = document.querySelector('form');
+if (!form) return;
+if (currentClienteModalTab === 'personal') {
+const nombre = form.querySelector('[name="cliente_nombre"]');
+const apellido = form.querySelector('[name="cliente_apellido"]');
+const email = form.querySelector('[name="cliente_email"]');
+const telefono = form.querySelector('[name="cliente_telefono"]');
+if (nombre) tempClienteData.nombre = nombre.value;
+if (apellido) tempClienteData.apellido = apellido.value;
+if (email) tempClienteData.email = email.value;
+if (telefono) tempClienteData.telefono = telefono.value;
+} else if (currentClienteModalTab === 'empresa') {
+const nombre = form.querySelector('[name="empresa_nombre"]');
+const razonSocial = form.querySelector('[name="empresa_razon_social"]');
+const cuit = form.querySelector('[name="empresa_cuit"]');
+if (nombre) tempEmpresaData.nombre = nombre.value;
+if (razonSocial) tempEmpresaData.razon_social = razonSocial.value;
+if (cuit) tempEmpresaData.cuit = cuit.value;
+}
 }
 async function handleClienteModalSubmit(formData) {
 try {
@@ -356,9 +387,14 @@ return el('div', { class: 'mb-4' }, [el('label', { class: 'block mb-2 font-semib
 }
 function renderClienteModal() {
 const words = clienteSearchTerm.trim().split(' ');
-const nombreDefault = selectedCliente ? selectedCliente.nombre : capitalizeWords(words[0] || '');
-const apellidoDefault = selectedCliente ? (selectedCliente.apellido || '') : (words.length > 1 ? capitalizeWords(words.slice(1).join(' ')) : '');
-return el('div', { class: 'p-4' }, [el('div', { class: 'flex justify-between items-center mb-4' }, [el('h3', { class: 'text-lg font-bold' }, selectedCliente ? 'Editar Cliente' : 'Agregar Cliente'),el('button', {type: 'button',class: 'text-2xl text-gray-500 hover:text-gray-700',onclick: closeClienteModal,'aria-label': 'Cerrar modal'}, '×')]),el('div', { class: 'flex gap-2 mb-4 border-b' }, [el('button', {type: 'button',class: `px-4 py-2 ${currentClienteModalTab === 'personal' ? 'border-b-2 border-primary font-semibold' : 'text-gray-600'}`,onclick: () => {currentClienteModalTab = 'personal';updateFormContent();}}, 'Datos Personales'),el('button', {type: 'button',class: `px-4 py-2 ${currentClienteModalTab === 'empresa' ? 'border-b-2 border-primary font-semibold' : 'text-gray-600'}`,onclick: () => {currentClienteModalTab = 'empresa';updateFormContent();}}, 'Empresa')]),el('form', {onsubmit: (e) => {e.preventDefault();handleClienteModalSubmit(new FormData(e.target));}}, [currentClienteModalTab === 'personal' ? el('div', {}, [el('div', { class: 'grid grid-cols-2 gap-4 mb-4' }, [el('div', {}, [el('label', { class: 'block mb-2 font-semibold text-sm' }, 'Nombre *'),el('input', {type: 'text',name: 'cliente_nombre',class: 'w-full p-2 border rounded',required: true,value: nombreDefault})]),el('div', {}, [el('label', { class: 'block mb-2 font-semibold text-sm' }, 'Apellido'),el('input', {type: 'text',name: 'cliente_apellido',class: 'w-full p-2 border rounded',value: apellidoDefault})])]),el('div', { class: 'mb-4' }, [el('label', { class: 'block mb-2 font-semibold text-sm' }, 'Email *'),el('input', {type: 'email',name: 'cliente_email',class: 'w-full p-2 border rounded',required: true,placeholder: 'ejemplo@correo.com',value: selectedCliente?.email || ''})]),el('div', { class: 'mb-6' }, [el('label', { class: 'block mb-2 font-semibold text-sm' }, 'Teléfono'),el('input', {type: 'tel',name: 'cliente_telefono',class: 'w-full p-2 border rounded',placeholder: '+54 11 1234-5678',value: selectedCliente?.telefono || ''})])]) : null,currentClienteModalTab === 'empresa' ? el('div', {}, [el('div', { class: 'mb-4' }, [el('label', { class: 'block mb-2 font-semibold text-sm' }, 'Nombre Comercial'),el('input', {type: 'text',name: 'empresa_nombre',class: 'w-full p-2 border rounded'})]),el('div', { class: 'mb-4' }, [el('label', { class: 'block mb-2 font-semibold text-sm' }, 'Razón Social'),el('input', {type: 'text',name: 'empresa_razon_social',class: 'w-full p-2 border rounded'})]),el('div', { class: 'mb-6' }, [el('label', { class: 'block mb-2 font-semibold text-sm' }, 'CUIT'),el('input', {type: 'text',name: 'empresa_cuit',class: 'w-full p-2 border rounded',placeholder: '20-12345678-9 o 20123456789',maxlength: 13})])]) : null,el('div', { class: 'flex gap-3 justify-end' }, [el('button', {type: 'button',class: 'px-4 py-2 border rounded bg-white',onclick: closeClienteModal}, 'Cancelar'),el('button', {type: 'submit',class: 'bg-primary text-white px-4 py-2 rounded font-semibold'}, selectedCliente ? 'Actualizar' : 'Crear Cliente')])].filter(Boolean))]);
+const nombreDefault = selectedCliente ? selectedCliente.nombre : (tempClienteData.nombre || capitalizeWords(words[0] || ''));
+const apellidoDefault = selectedCliente ? (selectedCliente.apellido || '') : (tempClienteData.apellido || (words.length > 1 ? capitalizeWords(words.slice(1).join(' ')) : ''));
+const emailDefault = selectedCliente ? selectedCliente.email : (tempClienteData.email || '');
+const telefonoDefault = selectedCliente ? selectedCliente.telefono : (tempClienteData.telefono || '');
+const empresaNombreDefault = tempEmpresaData.nombre || '';
+const empresaRazonSocialDefault = tempEmpresaData.razon_social || '';
+const empresaCuitDefault = tempEmpresaData.cuit || '';
+return el('div', { class: 'p-4' }, [el('div', { class: 'flex justify-between items-center mb-4' }, [el('h3', { class: 'text-lg font-bold' }, selectedCliente ? 'Editar Cliente' : 'Agregar Cliente'),el('button', {type: 'button',class: 'text-2xl text-gray-500 hover:text-gray-700',onclick: closeClienteModal,'aria-label': 'Cerrar modal'}, '×')]),el('div', { class: 'flex gap-2 mb-4 border-b' }, [el('button', {type: 'button',class: `px-4 py-2 ${currentClienteModalTab === 'personal' ? 'border-b-2 border-primary font-semibold' : 'text-gray-600'}`,onclick: () => {saveCurrentTabData();currentClienteModalTab = 'personal';updateFormContent();}}, 'Datos Personales'),el('button', {type: 'button',class: `px-4 py-2 ${currentClienteModalTab === 'empresa' ? 'border-b-2 border-primary font-semibold' : 'text-gray-600'}`,onclick: () => {saveCurrentTabData();currentClienteModalTab = 'empresa';updateFormContent();}}, 'Empresa')]),el('form', {onsubmit: (e) => {e.preventDefault();handleClienteModalSubmit(new FormData(e.target));}}, [currentClienteModalTab === 'personal' ? el('div', {}, [el('div', { class: 'grid grid-cols-2 gap-4 mb-4' }, [el('div', {}, [el('label', { class: 'block mb-2 font-semibold text-sm' }, 'Nombre *'),el('input', {type: 'text',name: 'cliente_nombre',class: 'w-full p-2 border rounded',required: true,value: nombreDefault})]),el('div', {}, [el('label', { class: 'block mb-2 font-semibold text-sm' }, 'Apellido'),el('input', {type: 'text',name: 'cliente_apellido',class: 'w-full p-2 border rounded',value: apellidoDefault})])]),el('div', { class: 'mb-4' }, [el('label', { class: 'block mb-2 font-semibold text-sm' }, 'Email *'),el('input', {type: 'email',name: 'cliente_email',class: 'w-full p-2 border rounded',required: true,placeholder: 'ejemplo@correo.com',value: emailDefault})]),el('div', { class: 'mb-6' }, [el('label', { class: 'block mb-2 font-semibold text-sm' }, 'Teléfono'),el('input', {type: 'tel',name: 'cliente_telefono',class: 'w-full p-2 border rounded',placeholder: '+54 11 1234-5678',value: telefonoDefault})])]) : null,currentClienteModalTab === 'empresa' ? el('div', {}, [el('div', { class: 'mb-4' }, [el('label', { class: 'block mb-2 font-semibold text-sm' }, 'Nombre Comercial'),el('input', {type: 'text',name: 'empresa_nombre',class: 'w-full p-2 border rounded',value: empresaNombreDefault})]),el('div', { class: 'mb-4' }, [el('label', { class: 'block mb-2 font-semibold text-sm' }, 'Razón Social'),el('input', {type: 'text',name: 'empresa_razon_social',class: 'w-full p-2 border rounded',value: empresaRazonSocialDefault})]),el('div', { class: 'mb-6' }, [el('label', { class: 'block mb-2 font-semibold text-sm' }, 'CUIT'),el('input', {type: 'text',name: 'empresa_cuit',class: 'w-full p-2 border rounded',placeholder: '20-12345678-9 o 20123456789',maxlength: 13,value: empresaCuitDefault})])]) : null,el('div', { class: 'flex gap-3 justify-end' }, [el('button', {type: 'button',class: 'px-4 py-2 border rounded bg-white',onclick: closeClienteModal}, 'Cancelar'),el('button', {type: 'submit',class: 'bg-primary text-white px-4 py-2 rounded font-semibold'}, selectedCliente ? 'Actualizar' : 'Crear Cliente')])].filter(Boolean))]);
 }
 function render() {
 container.innerHTML = '';
