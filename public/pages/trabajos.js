@@ -210,7 +210,13 @@ function handleClienteSearch(value) {
 clienteSearchTerm = value;
 selectedClienteIndex = -1;
 showClienteResults = value.length >= 3;
-updateFormContent();
+const resultsContainer = document.getElementById('cliente-autocomplete-results');
+if (resultsContainer) {
+resultsContainer.innerHTML = '';
+if (showClienteResults) {
+mount(resultsContainer, 'div', {}, renderClienteResults());
+}
+}
 }
 function getFilteredClientes() {
 if (clienteSearchTerm.length < 3) return [];
@@ -225,11 +231,19 @@ const filtered = getFilteredClientes();
 if (e.key === 'ArrowDown') {
 e.preventDefault();
 selectedClienteIndex = Math.min(selectedClienteIndex + 1, filtered.length);
-updateFormContent();
+const resultsContainer = document.getElementById('cliente-autocomplete-results');
+if (resultsContainer) {
+resultsContainer.innerHTML = '';
+mount(resultsContainer, 'div', {}, renderClienteResults());
+}
 } else if (e.key === 'ArrowUp') {
 e.preventDefault();
 selectedClienteIndex = Math.max(selectedClienteIndex - 1, -1);
-updateFormContent();
+const resultsContainer = document.getElementById('cliente-autocomplete-results');
+if (resultsContainer) {
+resultsContainer.innerHTML = '';
+mount(resultsContainer, 'div', {}, renderClienteResults());
+}
 } else if (e.key === 'Enter') {
 e.preventDefault();
 if (selectedClienteIndex === filtered.length) {
@@ -239,7 +253,10 @@ selectCliente(filtered[selectedClienteIndex]);
 }
 } else if (e.key === 'Escape') {
 showClienteResults = false;
-updateFormContent();
+const resultsContainer = document.getElementById('cliente-autocomplete-results');
+if (resultsContainer) {
+resultsContainer.innerHTML = '';
+}
 }
 }
 function selectCliente(cliente) {
@@ -247,6 +264,15 @@ selectedCliente = cliente;
 clienteSearchTerm = getFullClienteName(cliente);
 showClienteResults = false;
 updateFormContent();
+}
+function renderClienteResults() {
+const filteredClientes = getFilteredClientes();
+if (filteredClientes.length > 0) {
+return el('div', {class: 'absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto',role: 'listbox'}, [...filteredClientes.map((cliente, index) =>el('div', {class: `p-3 cursor-pointer hover:bg-gray-50 ${index === selectedClienteIndex ? 'bg-blue-50' : ''}`,role: 'option',tabindex: 0,'aria-selected': index === selectedClienteIndex,onclick: () => selectCliente(cliente),onkeydown: (e) => {if (e.key === 'Enter') selectCliente(cliente);}}, [el('div', { class: 'font-semibold' }, getFullClienteName(cliente)),el('div', { class: 'text-sm text-gray-600' }, cliente.email)])),el('div', {class: `p-3 cursor-pointer border-t bg-gray-50 hover:bg-gray-100 ${selectedClienteIndex === filteredClientes.length ? 'bg-blue-50' : ''}`,role: 'option',tabindex: 0,'aria-selected': selectedClienteIndex === filteredClientes.length,onclick: openClienteModal,onkeydown: (e) => {if (e.key === 'Enter') openClienteModal();}}, [el('div', { class: 'font-semibold text-primary' }, '+ Agregar nuevo cliente'),el('div', { class: 'text-sm text-gray-600' }, `"${clienteSearchTerm}"`)])]);
+} else if (clienteSearchTerm.length >= 3) {
+return el('div', {class: 'absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg',role: 'listbox'}, [el('div', {class: 'p-3 cursor-pointer bg-gray-50 hover:bg-gray-100',role: 'option',tabindex: 0,onclick: openClienteModal,onkeydown: (e) => {if (e.key === 'Enter') openClienteModal();}}, [el('div', { class: 'font-semibold text-primary' }, '+ Agregar nuevo cliente'),el('div', { class: 'text-sm text-gray-600' }, `"${clienteSearchTerm}"`)])]);
+}
+return null;
 }
 function openClienteModal() {
 showClienteModal = true;
@@ -326,8 +352,7 @@ function renderFormulario() {
 return el('form', {onsubmit: (e) => {e.preventDefault();handleSubmit(new FormData(e.target));}}, [renderClienteAutocomplete(),el('div', { class: 'mb-4' }, [el('label', { class: 'block mb-2 font-semibold' }, 'Detalles del Trabajo *'),el('textarea', {name: 'detalles',class: 'w-full p-2 border rounded',rows: 4,required: true,placeholder: 'Describe el trabajo a realizar...'}, editingTrabajo?.detalles || '')]),el('div', { class: 'grid grid-cols-1 md:grid-cols-3 gap-4 mb-4' }, [el('div', {}, [el('label', { class: 'block mb-2 font-semibold' }, 'Presupuesto *'),el('input', {type: 'number',name: 'presupuesto',class: 'w-full p-2 border rounded',step: '0.01',min: '0',required: true,value: editingTrabajo?.presupuesto || ''})]),el('div', {}, [el('label', { class: 'block mb-2 font-semibold' }, 'Monto Pagado'),el('input', {type: 'number',name: 'monto_pagado',class: 'w-full p-2 border rounded',step: '0.01',min: '0',value: editingTrabajo?.monto_pagado || '0'})]),el('div', {}, [el('label', { class: 'block mb-2 font-semibold' }, 'Fecha de Entrega'),el('input', {type: 'date',name: 'fecha_entrega',class: 'w-full p-2 border rounded',value: editingTrabajo?.fecha_entrega?.split('T')[0] || ''})])]),el('div', { class: 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-6' }, [el('div', {}, [el('label', { class: 'block mb-2 font-semibold' }, 'Estado *'),el('select', {name: 'estado',class: 'w-full p-2 border rounded',required: true}, ESTADOS.map(estado =>el('option', {value: estado,selected: editingTrabajo?.estado === estado || (!editingTrabajo && estado === 'Presupuesto')}, estado)))]),el('div', {}, [el('label', { class: 'block mb-2 font-semibold' }, 'Prioridad *'),el('select', {name: 'prioridad',class: 'w-full p-2 border rounded',required: true}, PRIORIDADES.map(prioridad =>el('option', {value: prioridad,selected: editingTrabajo?.prioridad === prioridad || (!editingTrabajo && prioridad === 'Media')}, prioridad)))])]),el('div', { class: 'flex gap-3 justify-end' }, [el('button', {type: 'button',class: 'px-6 py-2 border rounded bg-white',onclick: closeSidebar}, 'Cancelar'),el('button', {type: 'submit',class: 'bg-primary text-white px-6 py-2 rounded font-semibold'}, editingTrabajo ? 'Actualizar' : 'Guardar')])]);
 }
 function renderClienteAutocomplete() {
-const filteredClientes = getFilteredClientes();
-return el('div', { class: 'mb-4' }, [el('label', { class: 'block mb-2 font-semibold' }, 'Cliente *'),selectedCliente ? el('div', {class: 'p-3 bg-green-50 border border-green-200 rounded'}, [el('div', { class: 'flex justify-between items-start' }, [el('div', { class: 'flex-1' }, [el('div', { class: 'font-semibold text-green-800' }, getFullClienteName(selectedCliente)),selectedCliente.email ? el('div', { class: 'text-sm text-gray-600' }, selectedCliente.email) : null,selectedCliente.telefono ? el('div', { class: 'text-sm text-gray-600' }, selectedCliente.telefono) : null].filter(Boolean)),el('div', { class: 'flex gap-2' }, [el('button', {type: 'button',class: 'text-blue-600 hover:text-blue-800',onclick: openEditClienteModal,title: 'Editar cliente','aria-label': 'Editar cliente'}, '✏️'),el('button', {type: 'button',class: 'text-red-600 hover:text-red-800 text-xl',onclick: () => {selectedCliente = null;clienteSearchTerm = '';updateFormContent();},title: 'Quitar cliente','aria-label': 'Quitar cliente'}, '×')])])]) : el('div', { class: 'relative' }, [el('input', {type: 'text',class: 'w-full p-2 border rounded',placeholder: 'Buscar cliente (min. 3 caracteres)...',value: clienteSearchTerm,oninput: (e) => handleClienteSearch(e.target.value),onkeydown: (e) => handleClienteKeyDown(e),onfocus: () => {if (clienteSearchTerm.length >= 3) {showClienteResults = true;updateFormContent();}},'aria-label': 'Buscar cliente','aria-expanded': showClienteResults,'aria-autocomplete': 'list'}),showClienteResults && filteredClientes.length > 0 ? el('div', {class: 'absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto',role: 'listbox'}, [...filteredClientes.map((cliente, index) =>el('div', {class: `p-3 cursor-pointer hover:bg-gray-50 ${index === selectedClienteIndex ? 'bg-blue-50' : ''}`,role: 'option',tabindex: 0,'aria-selected': index === selectedClienteIndex,onclick: () => selectCliente(cliente),onkeydown: (e) => {if (e.key === 'Enter') selectCliente(cliente);}}, [el('div', { class: 'font-semibold' }, getFullClienteName(cliente)),el('div', { class: 'text-sm text-gray-600' }, cliente.email)])),el('div', {class: `p-3 cursor-pointer border-t bg-gray-50 hover:bg-gray-100 ${selectedClienteIndex === filteredClientes.length ? 'bg-blue-50' : ''}`,role: 'option',tabindex: 0,'aria-selected': selectedClienteIndex === filteredClientes.length,onclick: openClienteModal,onkeydown: (e) => {if (e.key === 'Enter') openClienteModal();}}, [el('div', { class: 'font-semibold text-primary' }, '+ Agregar nuevo cliente'),el('div', { class: 'text-sm text-gray-600' }, `"${clienteSearchTerm}"`)])]) : null,showClienteResults && clienteSearchTerm.length >= 3 && filteredClientes.length === 0 ? el('div', {class: 'absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg',role: 'listbox'}, [el('div', {class: 'p-3 cursor-pointer bg-gray-50 hover:bg-gray-100',role: 'option',tabindex: 0,onclick: openClienteModal,onkeydown: (e) => {if (e.key === 'Enter') openClienteModal();}}, [el('div', { class: 'font-semibold text-primary' }, '+ Agregar nuevo cliente'),el('div', { class: 'text-sm text-gray-600' }, `"${clienteSearchTerm}"`)])]) : null])]);
+return el('div', { class: 'mb-4' }, [el('label', { class: 'block mb-2 font-semibold' }, 'Cliente *'),selectedCliente ? el('div', {class: 'p-3 bg-green-50 border border-green-200 rounded'}, [el('div', { class: 'flex justify-between items-start' }, [el('div', { class: 'flex-1' }, [el('div', { class: 'font-semibold text-green-800' }, getFullClienteName(selectedCliente)),selectedCliente.email ? el('div', { class: 'text-sm text-gray-600' }, selectedCliente.email) : null,selectedCliente.telefono ? el('div', { class: 'text-sm text-gray-600' }, selectedCliente.telefono) : null].filter(Boolean)),el('div', { class: 'flex gap-2' }, [el('button', {type: 'button',class: 'text-blue-600 hover:text-blue-800',onclick: openEditClienteModal,title: 'Editar cliente','aria-label': 'Editar cliente'}, '✏️'),el('button', {type: 'button',class: 'text-red-600 hover:text-red-800 text-xl',onclick: () => {selectedCliente = null;clienteSearchTerm = '';updateFormContent();},title: 'Quitar cliente','aria-label': 'Quitar cliente'}, '×')])])]) : el('div', { class: 'relative' }, [el('input', {type: 'text',class: 'w-full p-2 border rounded',placeholder: 'Buscar cliente (min. 3 caracteres)...',value: clienteSearchTerm,oninput: (e) => handleClienteSearch(e.target.value),onkeydown: (e) => handleClienteKeyDown(e),onfocus: () => {if (clienteSearchTerm.length >= 3) {showClienteResults = true;const resultsContainer = document.getElementById('cliente-autocomplete-results');if (resultsContainer) {resultsContainer.innerHTML = '';mount(resultsContainer, 'div', {}, renderClienteResults());}}},'aria-label': 'Buscar cliente','aria-expanded': showClienteResults,'aria-autocomplete': 'list'}),el('div', { id: 'cliente-autocomplete-results' })])]);
 }
 function renderClienteModal() {
 const words = clienteSearchTerm.trim().split(' ');
